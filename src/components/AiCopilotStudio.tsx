@@ -369,8 +369,8 @@ Regras para Respostas:
     <div
       className={`space-y-4 transition-all duration-200 ${
         isFullscreen
-          ? 'fixed inset-0 z-50 bg-slate-950 p-2 sm:p-4 flex flex-col h-screen w-screen overflow-hidden'
-          : ''
+          ? 'fixed inset-0 z-50 bg-slate-950 p-2 sm:p-4 flex flex-col w-full h-full overflow-hidden'
+          : 'w-full'
       }`}
     >
       {/* Header Banner - Versão Slim quando em Tela Cheia, Completa em modo normal */}

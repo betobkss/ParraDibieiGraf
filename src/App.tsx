@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { AiCopilotStudio } from './components/AiCopilotStudio';
+import { PainelDashboard } from './components/PainelDashboard';
 import { GrafanaSuite } from './components/GrafanaSuite';
 import { PlaybooksExplorer } from './components/PlaybooksExplorer';
 import { IncidentHistoryViewer } from './components/IncidentHistoryViewer';
@@ -219,7 +220,7 @@ export default function App() {
       )}
 
       {/* 2. Conteúdo Principal das Abas */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-5">
         {/* Aba 1: Copiloto IA de Troubleshooting Guiado */}
         {activeTab === 'copilot' && (
           <AiCopilotStudio
@@ -229,7 +230,15 @@ export default function App() {
           />
         )}
 
-        {/* Aba 2: Observabilidade Grafana v10 & Prometheus Imbutida */}
+        {/* Aba 2: Painel Oficial de Troubleshooting (PAINEL.py / Dash) */}
+        {activeTab === 'dash' && (
+          <PainelDashboard
+            lang={lang}
+            onCaseCreated={handleCaseResolved}
+          />
+        )}
+
+        {/* Aba 3: Observabilidade Grafana v10 & Prometheus Imbutida */}
         {activeTab === 'grafana' && <GrafanaSuite lang={lang} />}
 
         {/* Aba 3: Catálogo de 43 Playbooks Homologados com Gestão de Risco */}

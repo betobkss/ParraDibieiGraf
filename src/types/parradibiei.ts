@@ -5,7 +5,7 @@
  * Este arquivo centraliza todas as tipagens da aplicação para fácil manutenção.
  */
 
-export type TabType = 'copilot' | 'grafana' | 'playbooks' | 'history' | 'doctor';
+export type TabType = 'copilot' | 'dash' | 'grafana' | 'playbooks' | 'history' | 'doctor';
 
 export type RiskLevel = 'leitura' | 'mudanca' | 'destrutivo';
 

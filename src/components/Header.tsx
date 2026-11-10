@@ -22,6 +22,8 @@ import {
   X,
   FolderArchive,
   Layers,
+  Server,
+  Maximize2,
 } from 'lucide-react';
 import { TabType } from '../types/parradibiei';
 import { triggerZipDownload, PARRA_DIBIEI_FULL_ZIP_BASE64 } from '../utils/zipData';
@@ -55,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
       brand: 'ParraDibiei',
       tag: 'API & Oracle DBA Grafana Studio',
       copilot: 'Copiloto IA (Guiado)',
+      dash: 'Painel Oficial (Dash)',
       grafana: 'Grafana v10 Imbutido',
       playbooks: '43 Playbooks',
       history: 'Histórico Vivo',
@@ -65,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
       brand: 'ParraDibiei',
       tag: 'API & Oracle DBA Grafana Studio',
       copilot: 'AI Copilot (Guided)',
+      dash: 'Official Dashboard (Dash)',
       grafana: 'Embedded Grafana v10',
       playbooks: '43 Playbooks',
       history: 'Live History',
@@ -111,7 +115,20 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{t.copilot}</span>
           </button>
 
-          {/* 2. Grafana v10 */}
+          {/* 2. Painel Oficial (Dash do PAINEL.py) */}
+          <button
+            onClick={() => setActiveTab('dash')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+              activeTab === 'dash'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+            }`}
+          >
+            <Server className="w-4 h-4 text-emerald-400" />
+            <span>{t.dash}</span>
+          </button>
+
+          {/* 3. Grafana v10 */}
           <button
             onClick={() => setActiveTab('grafana')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
@@ -220,6 +237,17 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
+
+          {/* Abrir em Nova Aba 100% Tela Cheia do Navegador */}
+          <a
+            href={window.location.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Abrir em Nova Aba 100% Tela Cheia (Sem Moldura AI Studio)"
+          >
+            <ExternalLink className="w-4 h-4 text-indigo-400" />
+          </a>
         </div>
       </div>
 
@@ -244,6 +272,18 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Bot className="w-3.5 h-3.5" />
           <span>Copiloto</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('dash')}
+          className={`px-3 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center gap-1 ${
+            activeTab === 'dash'
+              ? 'bg-indigo-600 text-white'
+              : 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800'
+          }`}
+        >
+          <Server className="w-3.5 h-3.5" />
+          <span>Dash</span>
         </button>
 
         <button
