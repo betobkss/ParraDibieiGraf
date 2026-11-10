@@ -1,0 +1,40 @@
+{
+  "titulo": "Check list diario do banco (visao geral em 2 minutos)",
+  "quando_usar": "Comeco de turno, ou primeira coisa a fazer quando abrem um chamado sem sintoma claro ('o banco esta lento'). Da o retrato do ambiente antes de qualquer hipotese.",
+  "erros_ora": [],
+  "tags": [
+    "checklist",
+    "diario",
+    "visao geral",
+    "instancia",
+    "sessoes",
+    "sga",
+    "pga"
+  ],
+  "passos": [
+    {
+      "titulo": "1. Diagnóstico e Mapeamento de Causa (Check list diario do banco (visao geral em 2 minutos))",
+      "objetivo": "Isolar se a causa raiz é concorrência, infraestrutura física ou aplicação.",
+      "risco": "leitura",
+      "comando": "SELECT inst_id, sid, serial#, username, status, event, seconds_in_wait FROM gv$session WHERE status = 'ACTIVE' ORDER BY seconds_in_wait DESC;",
+      "olhar": "seconds_in_wait alto e eventos da classe Concurrency ou User I/O.",
+      "armadilha": "Usar V$SESSION em ambiente RAC clusterizado."
+    },
+    {
+      "titulo": "2. Verificação de Integridade e Volume de Undo",
+      "objetivo": "Avaliar transação ativa e evitar tempo excessivo de rollback.",
+      "risco": "leitura",
+      "comando": "SELECT s.inst_id, s.sid, s.username, t.used_ublk, t.used_urec FROM gv$transaction t JOIN gv$session s ON s.saddr = t.ses_addr;",
+      "olhar": "used_ublk > 50000 indica transação gigantesca.",
+      "armadilha": "Matar sessão antes de saber o tamanho do rollback."
+    },
+    {
+      "titulo": "3. Ação Corretiva Auditada",
+      "objetivo": "Normalizar a fila e documentar a intervenção.",
+      "risco": "destrutivo",
+      "comando": "ALTER SYSTEM KILL SESSION 'sid,serial#,@inst_id' IMMEDIATE;",
+      "olhar": "Confira se a sessão sumiu de gv$session após 5 segundos.",
+      "armadilha": "Nunca matar processos de background (PMON, SMON, LGWR, DBW0)."
+    }
+  ]
+}

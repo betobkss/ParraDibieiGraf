@@ -1,0 +1,56 @@
+{
+  "titulo": "Nivel de patch, opatch e conferencia pos-upgrade",
+  "quando_usar": "Precisa conferir o nivel de patch do ambiente, validar se um Release Update foi aplicado por completo, investigar problema que apareceu depois de patch/upgrade, ou preparar a evidencia de conformidade de patching.",
+  "erros_ora": [
+    "ORA-00600",
+    "ORA-07445",
+    "ORA-04063",
+    "ORA-01092"
+  ],
+  "tags": [
+    "patch",
+    "opatch",
+    "release update",
+    "RU",
+    "psu",
+    "upgrade",
+    "datapatch",
+    "registry$sqlpatch",
+    "dba_registry_sqlpatch",
+    "nivel de patch",
+    "version_full",
+    "pos-upgrade",
+    "utlrp",
+    "objetos invalidos pos patch",
+    "dbms_registry",
+    "componentes do dicionario",
+    "bug",
+    "MOS"
+  ],
+  "passos": [
+    {
+      "titulo": "1. Diagnóstico e Mapeamento de Causa (Nivel de patch, opatch e conferencia pos-upgrade)",
+      "objetivo": "Isolar se a causa raiz é concorrência, infraestrutura física ou aplicação.",
+      "risco": "leitura",
+      "comando": "SELECT inst_id, sid, serial#, username, status, event, seconds_in_wait FROM gv$session WHERE status = 'ACTIVE' ORDER BY seconds_in_wait DESC;",
+      "olhar": "seconds_in_wait alto e eventos da classe Concurrency ou User I/O.",
+      "armadilha": "Usar V$SESSION em ambiente RAC clusterizado."
+    },
+    {
+      "titulo": "2. Verificação de Integridade e Volume de Undo",
+      "objetivo": "Avaliar transação ativa e evitar tempo excessivo de rollback.",
+      "risco": "leitura",
+      "comando": "SELECT s.inst_id, s.sid, s.username, t.used_ublk, t.used_urec FROM gv$transaction t JOIN gv$session s ON s.saddr = t.ses_addr;",
+      "olhar": "used_ublk > 50000 indica transação gigantesca.",
+      "armadilha": "Matar sessão antes de saber o tamanho do rollback."
+    },
+    {
+      "titulo": "3. Ação Corretiva Auditada",
+      "objetivo": "Normalizar a fila e documentar a intervenção.",
+      "risco": "destrutivo",
+      "comando": "ALTER SYSTEM KILL SESSION 'sid,serial#,@inst_id' IMMEDIATE;",
+      "olhar": "Confira se a sessão sumiu de gv$session após 5 segundos.",
+      "armadilha": "Nunca matar processos de background (PMON, SMON, LGWR, DBW0)."
+    }
+  ]
+}

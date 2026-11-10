@@ -1,0 +1,53 @@
+{
+  "titulo": "Alerta de monitoracao (Dynatrace/APM: failure rate, tempo de resposta) - o banco e a causa?",
+  "quando_usar": "Chegou alerta de APM citando um service/banco (failure rate, response time, erros) e ainda nao se sabe se a falha esta no banco ou na aplicacao. PRIMEIRO peca a excecao do APM (classe, mensagem e stack): ela costuma decidir o caso antes de qualquer consulta.",
+  "erros_ora": [
+    "ORA-00020",
+    "ORA-00018",
+    "ORA-12516",
+    "ORA-12520",
+    "ORA-01013"
+  ],
+  "tags": [
+    "dynatrace",
+    "apm",
+    "failure",
+    "failure rate",
+    "alerta",
+    "monitoracao",
+    "aplicacao",
+    "cliente",
+    "driver",
+    "odp.net",
+    "jdbc",
+    "service",
+    "rede",
+    "conexao"
+  ],
+  "passos": [
+    {
+      "titulo": "1. Diagnóstico e Mapeamento de Causa (Alerta de monitoracao (Dynatrace/APM: failure rate, tempo de resposta) - o banco e a causa?)",
+      "objetivo": "Isolar se a causa raiz é concorrência, infraestrutura física ou aplicação.",
+      "risco": "leitura",
+      "comando": "SELECT inst_id, sid, serial#, username, status, event, seconds_in_wait FROM gv$session WHERE status = 'ACTIVE' ORDER BY seconds_in_wait DESC;",
+      "olhar": "seconds_in_wait alto e eventos da classe Concurrency ou User I/O.",
+      "armadilha": "Usar V$SESSION em ambiente RAC clusterizado."
+    },
+    {
+      "titulo": "2. Verificação de Integridade e Volume de Undo",
+      "objetivo": "Avaliar transação ativa e evitar tempo excessivo de rollback.",
+      "risco": "leitura",
+      "comando": "SELECT s.inst_id, s.sid, s.username, t.used_ublk, t.used_urec FROM gv$transaction t JOIN gv$session s ON s.saddr = t.ses_addr;",
+      "olhar": "used_ublk > 50000 indica transação gigantesca.",
+      "armadilha": "Matar sessão antes de saber o tamanho do rollback."
+    },
+    {
+      "titulo": "3. Ação Corretiva Auditada",
+      "objetivo": "Normalizar a fila e documentar a intervenção.",
+      "risco": "destrutivo",
+      "comando": "ALTER SYSTEM KILL SESSION 'sid,serial#,@inst_id' IMMEDIATE;",
+      "olhar": "Confira se a sessão sumiu de gv$session após 5 segundos.",
+      "armadilha": "Nunca matar processos de background (PMON, SMON, LGWR, DBW0)."
+    }
+  ]
+}

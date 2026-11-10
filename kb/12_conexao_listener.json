@@ -1,0 +1,49 @@
+{
+  "titulo": "Aplicacao nao conecta (listener, TNS e limite de sessoes)",
+  "quando_usar": "Aplicacao recebe ORA-12154, ORA-12541, ORA-12514, ORA-12520 ou ORA-00020. Tambem quando 'o banco caiu' segundo a aplicacao, mas o banco esta no ar.",
+  "erros_ora": [
+    "ORA-12154",
+    "ORA-12541",
+    "ORA-12514",
+    "ORA-12520",
+    "ORA-12528",
+    "ORA-00020",
+    "ORA-12170"
+  ],
+  "tags": [
+    "listener",
+    "tns",
+    "conexao",
+    "ORA-12154",
+    "ORA-12541",
+    "ORA-12514",
+    "processes",
+    "pool"
+  ],
+  "passos": [
+    {
+      "titulo": "1. Diagnóstico e Mapeamento de Causa (Aplicacao nao conecta (listener, TNS e limite de sessoes))",
+      "objetivo": "Isolar se a causa raiz é concorrência, infraestrutura física ou aplicação.",
+      "risco": "leitura",
+      "comando": "SELECT inst_id, sid, serial#, username, status, event, seconds_in_wait FROM gv$session WHERE status = 'ACTIVE' ORDER BY seconds_in_wait DESC;",
+      "olhar": "seconds_in_wait alto e eventos da classe Concurrency ou User I/O.",
+      "armadilha": "Usar V$SESSION em ambiente RAC clusterizado."
+    },
+    {
+      "titulo": "2. Verificação de Integridade e Volume de Undo",
+      "objetivo": "Avaliar transação ativa e evitar tempo excessivo de rollback.",
+      "risco": "leitura",
+      "comando": "SELECT s.inst_id, s.sid, s.username, t.used_ublk, t.used_urec FROM gv$transaction t JOIN gv$session s ON s.saddr = t.ses_addr;",
+      "olhar": "used_ublk > 50000 indica transação gigantesca.",
+      "armadilha": "Matar sessão antes de saber o tamanho do rollback."
+    },
+    {
+      "titulo": "3. Ação Corretiva Auditada",
+      "objetivo": "Normalizar a fila e documentar a intervenção.",
+      "risco": "destrutivo",
+      "comando": "ALTER SYSTEM KILL SESSION 'sid,serial#,@inst_id' IMMEDIATE;",
+      "olhar": "Confira se a sessão sumiu de gv$session após 5 segundos.",
+      "armadilha": "Nunca matar processos de background (PMON, SMON, LGWR, DBW0)."
+    }
+  ]
+}

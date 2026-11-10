@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  parra-exporter:
+    image: python:3.11-slim
+    container_name: parradibiei-exporter
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: python3 PARRA_EXPORTER_SERVER.py --port 9889
+    ports:
+      - "9889:9889"
+    networks:
+      - dba-net
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: parradibiei-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - dba-net
+    depends_on:
+      - parra-exporter
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: parradibiei-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=parradibiei
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - dba-net
+    depends_on:
+      - prometheus
+
+networks:
+  dba-net:
+    driver: bridge

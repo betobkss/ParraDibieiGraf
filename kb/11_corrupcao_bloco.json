@@ -1,0 +1,47 @@
+{
+  "titulo": "Corrupcao de bloco (ORA-01578)",
+  "quando_usar": "ORA-01578 no alert log, RMAN acusando bloco corrompido, ORA-00600 com argumento de consistencia, ou consulta que falha sempre no mesmo ponto. Prioridade maxima: e integridade de dado.",
+  "erros_ora": [
+    "ORA-01578",
+    "ORA-01110",
+    "ORA-26040",
+    "ORA-08103",
+    "ORA-00600"
+  ],
+  "tags": [
+    "corrupcao",
+    "ORA-01578",
+    "bloco",
+    "rman",
+    "dbverify",
+    "integridade",
+    "nologging",
+    "recuperacao"
+  ],
+  "passos": [
+    {
+      "titulo": "1. Diagnóstico e Mapeamento de Causa (Corrupcao de bloco (ORA-01578))",
+      "objetivo": "Isolar se a causa raiz é concorrência, infraestrutura física ou aplicação.",
+      "risco": "leitura",
+      "comando": "SELECT inst_id, sid, serial#, username, status, event, seconds_in_wait FROM gv$session WHERE status = 'ACTIVE' ORDER BY seconds_in_wait DESC;",
+      "olhar": "seconds_in_wait alto e eventos da classe Concurrency ou User I/O.",
+      "armadilha": "Usar V$SESSION em ambiente RAC clusterizado."
+    },
+    {
+      "titulo": "2. Verificação de Integridade e Volume de Undo",
+      "objetivo": "Avaliar transação ativa e evitar tempo excessivo de rollback.",
+      "risco": "leitura",
+      "comando": "SELECT s.inst_id, s.sid, s.username, t.used_ublk, t.used_urec FROM gv$transaction t JOIN gv$session s ON s.saddr = t.ses_addr;",
+      "olhar": "used_ublk > 50000 indica transação gigantesca.",
+      "armadilha": "Matar sessão antes de saber o tamanho do rollback."
+    },
+    {
+      "titulo": "3. Ação Corretiva Auditada",
+      "objetivo": "Normalizar a fila e documentar a intervenção.",
+      "risco": "destrutivo",
+      "comando": "ALTER SYSTEM KILL SESSION 'sid,serial#,@inst_id' IMMEDIATE;",
+      "olhar": "Confira se a sessão sumiu de gv$session após 5 segundos.",
+      "armadilha": "Nunca matar processos de background (PMON, SMON, LGWR, DBW0)."
+    }
+  ]
+}

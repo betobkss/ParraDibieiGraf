@@ -1,0 +1,1083 @@
+[
+  {
+    "arquivo": "01_checklist_diario.json",
+    "titulo": "Check list diario do banco (visao geral em 2 minutos)",
+    "quando_usar": "Comeco de turno, ou primeira coisa a fazer quando abrem um chamado sem sintoma claro ('o banco esta lento'). Da o retrato do ambiente antes de qualquer hipotese.",
+    "erros_ora": [],
+    "tags": [
+      "checklist",
+      "diario",
+      "visao geral",
+      "instancia",
+      "sessoes",
+      "sga",
+      "pga"
+    ],
+    "passos_count": 8
+  },
+  {
+    "arquivo": "02_sessoes_locks.json",
+    "titulo": "Sessao travada e bloqueio (lock)",
+    "quando_usar": "Aplicacao reclama que 'travou', update nao termina, fila crescendo. Tambem quando o relatorio aponta bloqueio ou espera da classe Application/Concurrency.",
+    "erros_ora": [
+      "ORA-00060",
+      "ORA-02049"
+    ],
+    "tags": [
+      "lock",
+      "bloqueio",
+      "sessao",
+      "kill",
+      "enqueue",
+      "TX",
+      "row lock",
+      "deadlock",
+      "ORA-00060",
+      "abraco mortal"
+    ],
+    "passos_count": 8
+  },
+  {
+    "arquivo": "03_sql_lento.json",
+    "titulo": "SQL lento ou que ficou lento (troca de plano)",
+    "quando_usar": "'Ontem rodava em 2 minutos, hoje nao termina'. Ou o relatorio apontou regressao de SQL, troca de plano, ou um SQL dominando o DB time.",
+    "erros_ora": [],
+    "tags": [
+      "sql",
+      "plano",
+      "regressao",
+      "tuning",
+      "otimizador",
+      "estatisticas",
+      "bind"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "04_archive_cheio.json",
+    "titulo": "Area de archive cheia - banco parado (ORA-00257)",
+    "quando_usar": "Banco nao aceita mais transacao, aplicacao recebe ORA-00257, ou o diskgroup/filesystem de archive passou de 85%. E incidente de indisponibilidade: trate antes de qualquer coisa de performance.",
+    "erros_ora": [
+      "ORA-00257",
+      "ORA-16038",
+      "ORA-19809",
+      "ORA-19815"
+    ],
+    "tags": [
+      "archive",
+      "ORA-00257",
+      "FRA",
+      "indisponibilidade",
+      "espaco",
+      "rman"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "05_dataguard_gap.json",
+    "titulo": "Data Guard atrasado ou parado (gap)",
+    "quando_usar": "Standby fora de sincronia, RPO estourado, gap de archive, ou o relatorio apontou atraso de aplicacao. Tambem quando o PRIMARIO trava por causa de um destino remoto.",
+    "erros_ora": [
+      "ORA-16038",
+      "ORA-16401",
+      "ORA-00257",
+      "ORA-01031"
+    ],
+    "tags": [
+      "dataguard",
+      "standby",
+      "gap",
+      "mrp",
+      "replicacao",
+      "rpo",
+      "switchover"
+    ],
+    "passos_count": 8
+  },
+  {
+    "arquivo": "06_recursos_so.json",
+    "titulo": "Recursos do servidor: CPU, memoria e I/O",
+    "quando_usar": "O banco esta lento mas nenhum SQL explica; espera dominada por 'CPU' ou 'User I/O'; suspeita de swap, saturacao de CPU ou storage lento. Tambem quando o banco divide o host com outros servicos.",
+    "erros_ora": [],
+    "tags": [
+      "so",
+      "sistema operacional",
+      "cpu",
+      "memoria",
+      "swap",
+      "io",
+      "linux",
+      "saturacao"
+    ],
+    "passos_count": 7
+  },
+  {
+    "arquivo": "07_shared_pool_parse.json",
+    "titulo": "Shared pool, parse e ORA-04031",
+    "quando_usar": "ORA-04031 no alert log, espera em 'library cache: mutex X' / 'cursor: pin S wait on X' / 'latch: shared pool', CPU alta com muito hard parse, ou o banco 'trava' em horario de pico sem SQL pesado.",
+    "erros_ora": [
+      "ORA-04031",
+      "ORA-04030",
+      "ORA-04036"
+    ],
+    "tags": [
+      "shared pool",
+      "ORA-04031",
+      "parse",
+      "mutex",
+      "library cache",
+      "bind variable",
+      "cursor",
+      "sga"
+    ],
+    "passos_count": 10
+  },
+  {
+    "arquivo": "08_undo_ora1555.json",
+    "titulo": "UNDO: snapshot too old (ORA-01555) e undo cheio (ORA-30036)",
+    "quando_usar": "Relatorio longo morre com ORA-01555, batch falha com ORA-30036, ou a tablespace de UNDO nao para de crescer. Tambem quando ha rollback demorado apos matar sessao.",
+    "erros_ora": [
+      "ORA-01555",
+      "ORA-30036",
+      "ORA-01650",
+      "ORA-01628"
+    ],
+    "tags": [
+      "undo",
+      "ORA-01555",
+      "ORA-30036",
+      "rollback",
+      "retention",
+      "consistencia de leitura",
+      "flashback"
+    ],
+    "passos_count": 8
+  },
+  {
+    "arquivo": "09_espaco_tablespace.json",
+    "titulo": "Espaco: tablespace, datafile e TEMP cheios",
+    "quando_usar": "ORA-01653/ORA-01654 (nao consegue estender tabela/indice), ORA-01652 (TEMP), tablespace acima de 90%, ou o relatorio apontou previsao de estouro.",
+    "erros_ora": [
+      "ORA-01652",
+      "ORA-01653",
+      "ORA-01654",
+      "ORA-01688",
+      "ORA-01691"
+    ],
+    "tags": [
+      "espaco",
+      "tablespace",
+      "datafile",
+      "temp",
+      "ORA-01652",
+      "ORA-01653",
+      "autoextend",
+      "asm",
+      "crescimento"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "10_erro_interno.json",
+    "titulo": "Erro interno do Oracle (ORA-00600 / ORA-07445)",
+    "quando_usar": "ORA-00600, ORA-07445 ou ORA-00700 no alert log. Muda a prioridade de tudo: pare o diagnostico de performance e trate isto primeiro.",
+    "erros_ora": [
+      "ORA-00600",
+      "ORA-07445",
+      "ORA-00700",
+      "ORA-03113"
+    ],
+    "tags": [
+      "ORA-600",
+      "ORA-7445",
+      "erro interno",
+      "bug",
+      "trace",
+      "adrci",
+      "incident",
+      "SR",
+      "MOS"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "11_corrupcao_bloco.json",
+    "titulo": "Corrupcao de bloco (ORA-01578)",
+    "quando_usar": "ORA-01578 no alert log, RMAN acusando bloco corrompido, ORA-00600 com argumento de consistencia, ou consulta que falha sempre no mesmo ponto. Prioridade maxima: e integridade de dado.",
+    "erros_ora": [
+      "ORA-01578",
+      "ORA-01110",
+      "ORA-26040",
+      "ORA-08103",
+      "ORA-00600"
+    ],
+    "tags": [
+      "corrupcao",
+      "ORA-01578",
+      "bloco",
+      "rman",
+      "dbverify",
+      "integridade",
+      "nologging",
+      "recuperacao"
+    ],
+    "passos_count": 10
+  },
+  {
+    "arquivo": "12_conexao_listener.json",
+    "titulo": "Aplicacao nao conecta (listener, TNS e limite de sessoes)",
+    "quando_usar": "Aplicacao recebe ORA-12154, ORA-12541, ORA-12514, ORA-12520 ou ORA-00020. Tambem quando 'o banco caiu' segundo a aplicacao, mas o banco esta no ar.",
+    "erros_ora": [
+      "ORA-12154",
+      "ORA-12541",
+      "ORA-12514",
+      "ORA-12520",
+      "ORA-12528",
+      "ORA-00020",
+      "ORA-12170"
+    ],
+    "tags": [
+      "listener",
+      "tns",
+      "conexao",
+      "ORA-12154",
+      "ORA-12541",
+      "ORA-12514",
+      "processes",
+      "pool"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "13_backup_rpo.json",
+    "titulo": "Backup falhando e RPO estourado",
+    "quando_usar": "O relatorio apontou datafile sem backup recente, job de backup falhando, ou voce precisa responder 'quanto dado eu perderia se o banco morresse agora'.",
+    "erros_ora": [
+      "ORA-19809",
+      "ORA-19502",
+      "ORA-27037"
+    ],
+    "tags": [
+      "backup",
+      "rman",
+      "rpo",
+      "restore",
+      "recuperabilidade",
+      "retencao",
+      "scheduler"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "14_conformidade_desvios.json",
+    "titulo": "Tratar desvios de conformidade (estilo ORAchk)",
+    "quando_usar": "O relatorio trouxe a secao 'Conformidade com as praticas Oracle' com percentual abaixo do esperado, e voce precisa decidir o que corrigir, em que ordem e com que risco.",
+    "erros_ora": [],
+    "tags": [
+      "conformidade",
+      "orachk",
+      "best practice",
+      "parametro",
+      "padronizacao",
+      "hardening"
+    ],
+    "passos_count": 7
+  },
+  {
+    "arquivo": "15_contas_senha.json",
+    "titulo": "Conta expirada, bloqueada ou senha vencendo (ORA-28001 / ORA-28000)",
+    "quando_usar": "O relatorio apontou conta expirando, expirada ou bloqueada; a aplicacao comecou a receber ORA-28001/ORA-28000/ORA-01017; ou voce quer saber quais logins vao quebrar nos proximos dias.",
+    "erros_ora": [
+      "ORA-28001",
+      "ORA-28000",
+      "ORA-28002",
+      "ORA-01017",
+      "ORA-09925"
+    ],
+    "tags": [
+      "contas",
+      "usuario",
+      "senha",
+      "password",
+      "profile",
+      "expirada",
+      "bloqueada",
+      "seguranca",
+      "login",
+      "ORA-28001",
+      "ORA-28000",
+      "ORA-01017"
+    ],
+    "passos_count": 10
+  },
+  {
+    "arquivo": "16_redo_log_switch.json",
+    "titulo": "Redo mal dimensionado, troca de log demais e commit lento",
+    "quando_usar": "O relatorio apontou excesso de log switches em 24h; a espera 'log file sync' ou 'log file switch (checkpoint incomplete)' esta no topo; ou a aplicacao reclama que o COMMIT ficou lento sem o SQL ter mudado.",
+    "erros_ora": [
+      "ORA-00257",
+      "ORA-16038",
+      "ORA-00312"
+    ],
+    "tags": [
+      "redo",
+      "log switch",
+      "log file sync",
+      "checkpoint",
+      "commit",
+      "lgwr",
+      "redo log",
+      "archiver",
+      "desempenho"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "17_objetos_invalidos.json",
+    "titulo": "Objetos invalidos e componentes do dicionario",
+    "quando_usar": "O relatorio apontou objetos INVALID; a aplicacao recebeu ORA-04068/ORA-06508 depois de um deploy; ou voce quer confirmar a saude do dicionario apos patch, upgrade ou datapump.",
+    "erros_ora": [
+      "ORA-04063",
+      "ORA-04068",
+      "ORA-06508",
+      "ORA-01031",
+      "ORA-00942",
+      "PLS-00201"
+    ],
+    "tags": [
+      "objetos invalidos",
+      "invalid",
+      "compilar",
+      "utlrp",
+      "package",
+      "view",
+      "synonym",
+      "dicionario",
+      "registry",
+      "deploy",
+      "ORA-04063",
+      "ORA-04068",
+      "PLS-00201",
+      "recompilar em massa",
+      "utl_recomp",
+      "dba_errors"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "18_rac_global_cache.json",
+    "titulo": "RAC: contencao de Global Cache e interconnect",
+    "quando_usar": "O relatorio apontou eventos de Global Cache; as esperas da classe Cluster ('gc buffer busy', 'gc cr block busy') estao no topo; a aplicacao ficou lenta so depois de virar RAC ou depois de perder/voltar um no.",
+    "erros_ora": [
+      "ORA-29740",
+      "ORA-00600",
+      "ORA-27504",
+      "ORA-12547"
+    ],
+    "tags": [
+      "rac",
+      "cluster",
+      "global cache",
+      "interconnect",
+      "gc buffer busy",
+      "cache fusion",
+      "gv$",
+      "eviction",
+      "bloco",
+      "service"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "19_jobs_scheduler.json",
+    "titulo": "Job do scheduler falhando, travado ou que nao roda",
+    "quando_usar": "O relatorio apontou jobs do scheduler com falha; uma rotina automatica (coleta de estatisticas, expurgo, carga) parou de acontecer; ou um job esta rodando ha muito mais tempo que o normal.",
+    "erros_ora": [
+      "ORA-27492",
+      "ORA-27476",
+      "ORA-01031",
+      "ORA-12012"
+    ],
+    "tags": [
+      "scheduler",
+      "job",
+      "dbms_scheduler",
+      "dbms_job",
+      "broken",
+      "janela",
+      "window",
+      "autotask",
+      "estatisticas",
+      "expurgo",
+      "batch"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "20_instancia_travada.json",
+    "titulo": "Instancia travada (hang): nao conecta ou nao responde",
+    "quando_usar": "O banco parou de responder, novas conexoes ficam penduradas ou caem em timeout, a aplicacao inteira parou. Diferente de 'lentidao': aqui nao anda.",
+    "erros_ora": [
+      "ORA-00020",
+      "ORA-04031",
+      "ORA-00257",
+      "ORA-29740",
+      "ORA-01089"
+    ],
+    "tags": [
+      "hang",
+      "travado",
+      "instancia travada",
+      "nao conecta",
+      "prelim",
+      "hanganalyze",
+      "systemstate",
+      "srvctl",
+      "restart",
+      "rac",
+      "processos"
+    ],
+    "passos_count": 11
+  },
+  {
+    "arquivo": "21_transacao_distribuida.json",
+    "titulo": "Transacao distribuida em duvida (ORA-01591 / 2PC pendente)",
+    "quando_usar": "Sessoes travadas com ORA-01591; DBA_2PC_PENDING com linhas; um DB link caiu no meio de um commit e deixou a transacao 'fantasma' segurando linhas; alert log com ORA-02054.",
+    "erros_ora": [
+      "ORA-01591",
+      "ORA-02054",
+      "ORA-02051",
+      "ORA-01578",
+      "ORA-24756"
+    ],
+    "tags": [
+      "2pc",
+      "two phase commit",
+      "transacao distribuida",
+      "in-doubt",
+      "dblink",
+      "db link",
+      "ORA-01591",
+      "ORA-02054",
+      "reco",
+      "commit force",
+      "rollback force",
+      "purge_lost_db_entry",
+      "transacao fantasma"
+    ],
+    "passos_count": 8
+  },
+  {
+    "arquivo": "22_cursores_ora1000.json",
+    "titulo": "Cursores abertos no limite (ORA-01000) e contencao de cursor",
+    "quando_usar": "A aplicacao recebe ORA-01000 'maximum open cursors exceeded', ou o numero de cursores abertos por sessao cresce sem parar, ou ha espera 'cursor: pin S wait on X' / 'library cache: mutex X' no topo do ASH.",
+    "erros_ora": [
+      "ORA-01000",
+      "ORA-00604",
+      "ORA-04031"
+    ],
+    "tags": [
+      "cursor",
+      "cursores",
+      "ORA-01000",
+      "open_cursors",
+      "ORA-01000 maximum open cursors",
+      "cursor leak",
+      "vazamento de cursor",
+      "cursor: pin S wait on X",
+      "mutex",
+      "library cache mutex",
+      "session_cached_cursors",
+      "hard parse",
+      "ORA-04031"
+    ],
+    "passos_count": 11
+  },
+  {
+    "arquivo": "23_volumetria_crescimento.json",
+    "titulo": "Volumetria e projecao de crescimento (capacity planning)",
+    "quando_usar": "Precisa responder 'quando o banco enche?', dimensionar storage para os proximos meses, justificar pedido de espaco, ou entender por que um tablespace cresceu de repente.",
+    "erros_ora": [
+      "ORA-01653",
+      "ORA-01652",
+      "ORA-01688",
+      "ORA-01691",
+      "ORA-30036"
+    ],
+    "tags": [
+      "volumetria",
+      "crescimento",
+      "capacity",
+      "capacity planning",
+      "projecao",
+      "quando enche",
+      "crescimento vegetativo",
+      "tendencia de espaco",
+      "storage",
+      "dimensionamento",
+      "top segmentos",
+      "maiores tabelas",
+      "crescimento de tabela",
+      "dba_hist_tbspc_space_usage",
+      "espaco"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "24_datapump.json",
+    "titulo": "Data Pump travado ou lento (expdp / impdp)",
+    "quando_usar": "Um export/import Data Pump nao termina, parece parado, esta muito mais lento que o normal, ou falhou no meio e voce precisa saber se da para retomar.",
+    "erros_ora": [
+      "ORA-31693",
+      "ORA-39002",
+      "ORA-39171",
+      "ORA-31626",
+      "ORA-01652",
+      "ORA-01653"
+    ],
+    "tags": [
+      "datapump",
+      "data pump",
+      "expdp",
+      "impdp",
+      "export",
+      "import",
+      "dump",
+      "exportacao",
+      "importacao",
+      "job travado",
+      "ORA-31693",
+      "ORA-39002",
+      "ORA-39171",
+      "ORA-31626",
+      "dba_datapump_jobs",
+      "attach",
+      "carga lenta",
+      "restore logico"
+    ],
+    "passos_count": 10
+  },
+  {
+    "arquivo": "25_dblink.json",
+    "titulo": "DB link com falha, lento ou vazando sessao",
+    "quando_usar": "Consulta atraves de database link falha, fica pendurada, ficou lenta de repente, ou o banco remoto acumula sessoes originadas por link.",
+    "erros_ora": [
+      "ORA-02019",
+      "ORA-02068",
+      "ORA-03135",
+      "ORA-02020",
+      "ORA-12154",
+      "ORA-01017"
+    ],
+    "tags": [
+      "dblink",
+      "db link",
+      "database link",
+      "link",
+      "ORA-02019",
+      "ORA-12154",
+      "ORA-01017",
+      "ORA-02068",
+      "ORA-03135",
+      "ORA-02020",
+      "open_links",
+      "banco remoto",
+      "consulta remota",
+      "distribuido",
+      "global_names",
+      "ORA-01555 remoto"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "26_reorg_fragmentacao.json",
+    "titulo": "Espaco desperdicado: fragmentacao, high water mark e reorg",
+    "quando_usar": "O tablespace esta cheio mas os dados nao justificam o tamanho, uma tabela sofreu DELETE massivo e nao devolveu espaco, o full scan ficou lento sem crescer o volume, ou avaliam-se opcoes de reorg antes de pedir storage.",
+    "erros_ora": [
+      "ORA-01653",
+      "ORA-01652",
+      "ORA-10635",
+      "ORA-01555"
+    ],
+    "tags": [
+      "reorg",
+      "reorganizacao",
+      "fragmentacao",
+      "high water mark",
+      "hwm",
+      "shrink",
+      "move",
+      "espaco desperdicado",
+      "delete massivo",
+      "purga",
+      "coalesce",
+      "rebuild indice",
+      "online redefinition",
+      "dbms_redefinition",
+      "row chaining",
+      "migracao de linha",
+      "pctfree",
+      "sysaux grande",
+      "aud$",
+      "espaco",
+      "audsys",
+      "cli_swp$",
+      "unified_audit_trail"
+    ],
+    "passos_count": 10
+  },
+  {
+    "arquivo": "27_patch_upgrade.json",
+    "titulo": "Nivel de patch, opatch e conferencia pos-upgrade",
+    "quando_usar": "Precisa conferir o nivel de patch do ambiente, validar se um Release Update foi aplicado por completo, investigar problema que apareceu depois de patch/upgrade, ou preparar a evidencia de conformidade de patching.",
+    "erros_ora": [
+      "ORA-00600",
+      "ORA-07445",
+      "ORA-04063",
+      "ORA-01092"
+    ],
+    "tags": [
+      "patch",
+      "opatch",
+      "release update",
+      "RU",
+      "psu",
+      "upgrade",
+      "datapatch",
+      "registry$sqlpatch",
+      "dba_registry_sqlpatch",
+      "nivel de patch",
+      "version_full",
+      "pos-upgrade",
+      "utlrp",
+      "objetos invalidos pos patch",
+      "dbms_registry",
+      "componentes do dicionario",
+      "bug",
+      "MOS"
+    ],
+    "passos_count": 9
+  },
+  {
+    "arquivo": "28_golden_gate.json",
+    "titulo": "Golden Gate com lag, ABEND ou processo travado",
+    "quando_usar": "A replicacao Golden Gate acumulou lag, um Extract/Replicat esta em ABEND ou STOPPED, o processo nao responde ao comando de stop, ou o destino esta com dado atrasado.",
+    "erros_ora": [
+      "ORA-01555",
+      "ORA-00257",
+      "ORA-04031"
+    ],
+    "tags": [
+      "golden gate",
+      "goldengate",
+      "ogg",
+      "ggsci",
+      "replicacao",
+      "lag",
+      "extract",
+      "replicat",
+      "pump",
+      "abend",
+      "manager",
+      "mgr",
+      "trail",
+      "checkpoint",
+      "gap de replicacao",
+      "destino atrasado",
+      "integrated extract",
+      "logdump",
+      "OGG-01031",
+      "OGG-02232"
+    ],
+    "passos_count": 10
+  },
+  {
+    "arquivo": "29_pdb_resource_manager.json",
+    "titulo": "Multitenant: PDB contida pelo Resource Manager",
+    "quando_usar": "A PDB ficou lenta sem que o SQL, o plano ou o volume tenham mudado; aparecem esperas 'resmgr: cpu quantum' ou 'resmgr: pq queued'; a mesma consulta e rapida em outra PDB do mesmo CDB; ou alguem alterou o plano de recurso / o cpu_count da PDB.",
+    "erros_ora": [
+      "ORA-00018",
+      "ORA-00020",
+      "ORA-56735"
+    ],
+    "tags": [
+      "pdb",
+      "multitenant",
+      "cdb",
+      "container",
+      "resource manager",
+      "resmgr",
+      "recurso",
+      "cpu",
+      "shares",
+      "utilization_limit"
+    ],
+    "passos_count": 7
+  },
+  {
+    "arquivo": "30_carga_vs_custo.json",
+    "titulo": "Tuning: ficou mais lento ou passou a fazer mais?",
+    "quando_usar": "Reclamacao de lentidao generica, sem erro e sem sessao bloqueada: 'esta pesado', 'demora desde hoje', 'o relatorio nao sai'. Use ANTES de tunar qualquer SQL - e o playbook que decide se o caso e de carga, de custo ou de mudanca na aplicacao.",
+    "erros_ora": [],
+    "tags": [
+      "tuning",
+      "carga",
+      "capacidade",
+      "sessao",
+      "sql",
+      "plano",
+      "regressao",
+      "aplicacao",
+      "mudanca"
+    ],
+    "passos_count": 7
+  },
+  {
+    "arquivo": "31_clusterware_gi.json",
+    "titulo": "Grid Infrastructure: crsctl/srvctl nao respondem ou nao existem",
+    "quando_usar": "srvctl ou crsctl falham, nao sao encontrados, ou reclamam que nao acham o Clusterware home. Antes de qualquer coisa e preciso separar tres mundos que dao mensagens parecidas: (a) o host NAO tem Grid Infrastructure - e single instance puro; (b) tem GI, mas a stack esta parada; (c) tem GI no ar, mas o ambiente do shell aponta para o home errado.",
+    "erros_ora": [
+      "CRS-4639",
+      "CRS-4535",
+      "CRS-4000",
+      "ORA-29740",
+      "ORA-01031"
+    ],
+    "tags": [
+      "crsctl",
+      "srvctl",
+      "clusterware",
+      "grid infrastructure",
+      "oracle restart",
+      "has",
+      "ohasd",
+      "olr.loc",
+      "ocr.loc",
+      "oratab",
+      "inventory",
+      "single instance",
+      "standalone",
+      "stack parada",
+      "ORACLE_HOME errado"
+    ],
+    "passos_count": 7
+  },
+  {
+    "arquivo": "32_dataguard_rollforward.json",
+    "titulo": "Standby com gap irresolvivel - roll-forward incremental (em vez de recriar)",
+    "quando_usar": "O broker acusa ORA-16724/ORA-16783 ou v$database.switchover_status = UNRESOLVABLE GAP, e os archives que faltam nao existem mais nem no primario nem em backup. Use ANTES de cogitar DROP DATABASE + DUPLICATE: se os datafiles do standby estao integros, reconstruir e desproporcional.",
+    "erros_ora": [
+      "ORA-16724",
+      "ORA-16783",
+      "ORA-16854",
+      "ORA-19554",
+      "ORA-27000",
+      "ORA-19511"
+    ],
+    "tags": [
+      "dataguard",
+      "standby",
+      "gap",
+      "unresolvable",
+      "roll-forward",
+      "incremental",
+      "recover from service",
+      "duplicate",
+      "broker",
+      "cdb"
+    ],
+    "passos_count": 13
+  },
+  {
+    "arquivo": "33_espaco_asm_diskgroup.json",
+    "titulo": "Alerta de espaco - separar tablespace de diskgroup e ampliar o ASM",
+    "quando_usar": "Alerta de espaco citando tablespace ou datafile perto de 100%, em ambiente com ASM. Use ANTES de decidir se o caso e um RESIZE de tres minutos ou uma ampliacao de storage com rebalance: a mesma mensagem de alerta cobre os dois, e o custo difere em ordens de grandeza.",
+    "erros_ora": [
+      "ORA-01653",
+      "ORA-01654",
+      "ORA-01119",
+      "ORA-15041",
+      "ORA-15040"
+    ],
+    "tags": [
+      "espaco",
+      "asm",
+      "diskgroup",
+      "tablespace",
+      "datafile",
+      "afd",
+      "rebalance",
+      "add disk",
+      "capacidade"
+    ],
+    "passos_count": 11
+  },
+  {
+    "arquivo": "34_rman_catalogo_wallet.json",
+    "titulo": "Catalogo RMAN e wallet de credenciais (conectar, validar, registrar)",
+    "quando_usar": "RMAN nao acha o catalogo, backup falha na conexao com o repositorio, pacotes do catalogo desatualizados apos patch, duvida sobre QUAL usuario roda o backup, banco novo a registrar, ou servico do catalogo ativo no no errado do cluster.",
+    "erros_ora": [
+      "ORA-12154",
+      "ORA-01017",
+      "ORA-28759",
+      "ORA-12541",
+      "ORA-02019"
+    ],
+    "tags": [
+      "rman",
+      "catalogo",
+      "recovery catalog",
+      "wallet",
+      "mkstore",
+      "credencial",
+      "tns_admin",
+      "backup",
+      "dblink",
+      "repositorio",
+      "RMAN-04004",
+      "RMAN-06429",
+      "RMAN-06445"
+    ],
+    "passos_count": 11
+  },
+  {
+    "arquivo": "35_alerta_monitoracao.json",
+    "titulo": "Alerta de monitoracao (Dynatrace/APM: failure rate, tempo de resposta) - o banco e a causa?",
+    "quando_usar": "Chegou alerta de APM citando um service/banco (failure rate, response time, erros) e ainda nao se sabe se a falha esta no banco ou na aplicacao. PRIMEIRO peca a excecao do APM (classe, mensagem e stack): ela costuma decidir o caso antes de qualquer consulta.",
+    "erros_ora": [
+      "ORA-00020",
+      "ORA-00018",
+      "ORA-12516",
+      "ORA-12520",
+      "ORA-01013"
+    ],
+    "tags": [
+      "dynatrace",
+      "apm",
+      "failure",
+      "failure rate",
+      "alerta",
+      "monitoracao",
+      "aplicacao",
+      "cliente",
+      "driver",
+      "odp.net",
+      "jdbc",
+      "service",
+      "rede",
+      "conexao"
+    ],
+    "passos_count": 5
+  },
+  {
+    "arquivo": "36_gravity.json",
+    "titulo": "Gravity (arquivamento/expurgo): job falhando - erro ORA- decide o ramo",
+    "quando_usar": "Job do Gravity (arquivamento, expurgo, troca de tabela por AUX, recarga a partir de base GoldenGate) falhou ou travou. PRIMEIRO pegue o codigo ORA- da mensagem: ORA-00942 -> tabela/AUX; ORA-14466/ORA-12081/ORA-00372 -> read only; ORA-00054 ou travado -> bloqueio; ORA-01652 -> temp; ORA-00020 -> limites.",
+    "erros_ora": [
+      "ORA-00942",
+      "ORA-00054",
+      "ORA-14466",
+      "ORA-12081",
+      "ORA-00372",
+      "ORA-01652",
+      "ORA-00020",
+      "ORA-02266"
+    ],
+    "tags": [
+      "gravity",
+      "arquivamento",
+      "expurgo",
+      "aux",
+      "rename",
+      "recyclebin",
+      "read only",
+      "ora-00942",
+      "ora-00054",
+      "ora-14466",
+      "ora-12081",
+      "ora-00372",
+      "truncate",
+      "goldengate",
+      "recarga"
+    ],
+    "passos_count": 11
+  },
+  {
+    "arquivo": "37_io_freeze_xfs_afd.json",
+    "titulo": "Congelamento de I/O (VMware/storage): XFS em shutdown, AFD e ASM afetados",
+    "quando_usar": "Depois de congelamento de I/O no storage/VMware: filesystem XFS em shutdown ('Input/output error' em todo comando), discos AFD nao carregados, diskgroup ASM dismounted, Oracle Restart sem subir. Nada aqui e automatico: o primeiro objetivo e saber o que quebrou, em que ordem.",
+    "erros_ora": [
+      "ORA-15017",
+      "ORA-15040",
+      "ORA-15042",
+      "ORA-27072"
+    ],
+    "tags": [
+      "xfs",
+      "afd",
+      "asm",
+      "io",
+      "freeze",
+      "vmware",
+      "storage",
+      "filesystem",
+      "shutdown",
+      "oracle restart",
+      "oracleafd",
+      "oracleacfs",
+      "dismount"
+    ],
+    "passos_count": 5
+  },
+  {
+    "arquivo": "50_mssql_bloqueio.json",
+    "titulo": "SQL Server: bloqueio, cadeia de lock e deadlock",
+    "quando_usar": "Aplicacao travada ou lenta em SQL Server, timeout de comando, 'Lock request time out period exceeded' (erro 1222) ou deadlock (erro 1205). Tambem quando o sintoma e 'o banco esta lento' e o wait dominante e da familia LCK_M_*.",
+    "erros_ora": [],
+    "tags": [
+      "sql server",
+      "mssql",
+      "bloqueio",
+      "blocking",
+      "lock",
+      "deadlock",
+      "blocking chain",
+      "sessao bloqueada",
+      "LCK_M_X",
+      "LCK_M_S",
+      "sp_who2",
+      "erro 1205",
+      "erro 1222",
+      "timeout de comando",
+      "transacao aberta",
+      "kill spid"
+    ],
+    "passos_count": 7
+  },
+  {
+    "arquivo": "51_postgres_bloqueio.json",
+    "titulo": "PostgreSQL: bloqueio, transacao idle e bloat de XID",
+    "quando_usar": "Aplicacao pendurada em PostgreSQL, comando que nao volta, 'canceling statement due to lock timeout', autovacuum que nao limpa nada, ou tabela que so cresce. Os tres sintomas costumam ter a MESMA origem: uma transacao aberta e esquecida.",
+    "erros_ora": [],
+    "tags": [
+      "postgresql",
+      "postgres",
+      "bloqueio",
+      "lock",
+      "pg_locks",
+      "pg_stat_activity",
+      "idle in transaction",
+      "lock timeout",
+      "deadlock detected",
+      "autovacuum",
+      "bloat",
+      "xid wraparound",
+      "long running transaction",
+      "pg_blocking_pids",
+      "pg_terminate_backend"
+    ],
+    "passos_count": 6
+  },
+  {
+    "arquivo": "52_redis_latencia.json",
+    "titulo": "Redis: latencia, memoria e evicao",
+    "quando_usar": "Aplicacao reclamando de lentidao no cache, timeout no cliente Redis, OOM command not allowed, chave que 'sumiu' antes da hora, ou uso de memoria proximo do maxmemory.",
+    "erros_ora": [],
+    "tags": [
+      "redis",
+      "cache",
+      "latencia",
+      "timeout",
+      "slowlog",
+      "maxmemory",
+      "evicao",
+      "eviction",
+      "OOM command not allowed",
+      "keyspace miss",
+      "fork",
+      "rdb",
+      "aof",
+      "swap",
+      "big key",
+      "KEYS",
+      "single thread",
+      "sentinel",
+      "failover",
+      "readonly",
+      "errorstat_readonly"
+    ],
+    "passos_count": 8
+  },
+  {
+    "arquivo": "53_db2_bloqueio.json",
+    "titulo": "Db2: lock wait, deadlock e lock escalation",
+    "quando_usar": "Aplicacao parada em Db2, SQL0911N (rollback por deadlock ou timeout), SQL0913N (lock nao obtido), transacao pendurada, ou lentidao generalizada com CPU baixa.",
+    "erros_ora": [],
+    "tags": [
+      "db2",
+      "lock wait",
+      "lockwait",
+      "deadlock",
+      "lock escalation",
+      "SQL0911N",
+      "SQL0913N",
+      "MON_GET_LOCKS",
+      "MON_GET_APPL_LOCKWAIT",
+      "db2pd",
+      "locktimeout",
+      "LOCKLIST",
+      "MAXLOCKS",
+      "uncommitted transaction",
+      "application handle"
+    ],
+    "passos_count": 6
+  },
+  {
+    "arquivo": "54_mysql_bloqueio.json",
+    "titulo": "MySQL/InnoDB: lock wait timeout, deadlock e transacao longa",
+    "quando_usar": "'Lock wait timeout exceeded; try restarting transaction' (erro 1205), 'Deadlock found when trying to get lock' (erro 1213), gravacao travada, ou history list crescendo sem parar.",
+    "erros_ora": [],
+    "tags": [
+      "mysql",
+      "mariadb",
+      "innodb",
+      "lock wait timeout exceeded",
+      "erro 1205",
+      "deadlock found",
+      "erro 1213",
+      "data_locks",
+      "data_lock_waits",
+      "innodb_trx",
+      "history list length",
+      "undo",
+      "metadata lock",
+      "MDL",
+      "waiting for table metadata lock",
+      "innodb_lock_wait_timeout",
+      "gap lock"
+    ],
+    "passos_count": 6
+  },
+  {
+    "arquivo": "55_db2_log_cheio.json",
+    "titulo": "Db2: log de transacao alto ou a 100% - e nem sempre e log cheio",
+    "quando_usar": "Alerta de Transaction Log High Usage, log utilization acima do threshold, ou SQL0964C no log de aplicacao. Use ANTES de aumentar LOGSECOND ou matar sessao: as duas reacoes automaticas deste alerta costumam ser erradas, e uma delas pode travar o banco.",
+    "erros_ora": [],
+    "tags": [
+      "db2",
+      "transaction log",
+      "log cheio",
+      "log utilization",
+      "logsecond",
+      "logprimary",
+      "logfilsiz",
+      "logarchmeth1",
+      "infinite logging",
+      "SQL0964C",
+      "SQL1224N",
+      "falso positivo",
+      "monitoracao"
+    ],
+    "passos_count": 10
+  }
+]

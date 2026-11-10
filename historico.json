@@ -1,0 +1,63 @@
+{
+  "versao": "2.0.0-enterprise",
+  "atualizado_em": "2026-11-07T01:00:00Z",
+  "banco": "PROD_ORCL_RAC",
+  "casos_totais": 3,
+  "taxa_resolucao_pct": 100.0,
+  "casos": [
+    {
+      "id": "CASO_20261106_LOCK_01",
+      "titulo": "Contenção de Linha (Enq: TX) na tabela TB_PAGAMENTOS",
+      "data": "2026-11-06 14:22:10",
+      "playbook_usado": "02_sessoes_locks.json",
+      "severidade": "CRITICAL",
+      "status": "RESOLVIDO",
+      "health_score_inicial": 64,
+      "health_score_final": 96,
+      "causa_raiz": "Aplicação APP_FINANCEIRO abriu transação e entrou em status INACTIVE sem emitir COMMIT devido a falha de pooling no servidor web.",
+      "acao_tomada": "Sessão raiz SID 142 validada (apenas 42 registros no Undo) e encerrada via ALTER SYSTEM KILL SESSION.",
+      "autor": "Copiloto IA ParraDibiei & DBA Beto",
+      "arquivos": [
+        "metadata.json",
+        "findings.csv",
+        "relatorio.md"
+      ]
+    },
+    {
+      "id": "CASO_20261105_FRA_02",
+      "titulo": "Fast Recovery Area (FRA) atingiu 93.8% de ocupação",
+      "data": "2026-11-05 09:15:40",
+      "playbook_usado": "04_archive_cheio.json",
+      "severidade": "HIGH",
+      "status": "RESOLVIDO",
+      "health_score_inicial": 42,
+      "health_score_final": 92,
+      "causa_raiz": "Backups do RMAN acumulados há 15 dias impedindo expiração automática de archivelogs.",
+      "acao_tomada": "Executado RMAN crosscheck archivelog all e delete noprompt expired para liberar 140 GB.",
+      "autor": "Copiloto IA ParraDibiei & DBA Beto",
+      "arquivos": [
+        "metadata.json",
+        "findings.csv",
+        "relatorio.md"
+      ]
+    },
+    {
+      "id": "CASO_20261104_ORA1555_03",
+      "titulo": "Erro ORA-01555 Snapshot Too Old no Job de Faturamento",
+      "data": "2026-11-04 22:40:15",
+      "playbook_usado": "08_undo_ora1555.json",
+      "severidade": "MEDIUM",
+      "status": "RESOLVIDO",
+      "health_score_inicial": 71,
+      "health_score_final": 98,
+      "causa_raiz": "Query de faturamento demorava 4h20m enquanto UNDO_RETENTION estava fixado em 14.400s (4h).",
+      "acao_tomada": "Ajustado UNDO_RETENTION para 21.600s (6h) e adicionado índice na coluna DT_FATURAMENTO.",
+      "autor": "Copiloto IA ParraDibiei & DBA Beto",
+      "arquivos": [
+        "metadata.json",
+        "findings.csv",
+        "relatorio.md"
+      ]
+    }
+  ]
+}

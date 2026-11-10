@@ -1,0 +1,6 @@
+{
+  "name": "ParraDibiei - API & Oracle DBA Grafana Studio",
+  "description": "Framework corporativo Oracle DBA com Copiloto IA integrado, histórico vivo de incidentes (historico.json), 43 playbooks homologados e stack Grafana v10 auto-provisionada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

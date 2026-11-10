@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "parradibiei-troubleshoot": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "mcp.server"
+      ],
+      "env": {
+        "PYTHONPATH": "."
+      }
+    }
+  }
+}

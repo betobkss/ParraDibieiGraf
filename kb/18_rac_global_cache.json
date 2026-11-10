@@ -1,0 +1,48 @@
+{
+  "titulo": "RAC: contencao de Global Cache e interconnect",
+  "quando_usar": "O relatorio apontou eventos de Global Cache; as esperas da classe Cluster ('gc buffer busy', 'gc cr block busy') estao no topo; a aplicacao ficou lenta so depois de virar RAC ou depois de perder/voltar um no.",
+  "erros_ora": [
+    "ORA-29740",
+    "ORA-00600",
+    "ORA-27504",
+    "ORA-12547"
+  ],
+  "tags": [
+    "rac",
+    "cluster",
+    "global cache",
+    "interconnect",
+    "gc buffer busy",
+    "cache fusion",
+    "gv$",
+    "eviction",
+    "bloco",
+    "service"
+  ],
+  "passos": [
+    {
+      "titulo": "1. Diagnóstico e Mapeamento de Causa (RAC: contencao de Global Cache e interconnect)",
+      "objetivo": "Isolar se a causa raiz é concorrência, infraestrutura física ou aplicação.",
+      "risco": "leitura",
+      "comando": "SELECT inst_id, sid, serial#, username, status, event, seconds_in_wait FROM gv$session WHERE status = 'ACTIVE' ORDER BY seconds_in_wait DESC;",
+      "olhar": "seconds_in_wait alto e eventos da classe Concurrency ou User I/O.",
+      "armadilha": "Usar V$SESSION em ambiente RAC clusterizado."
+    },
+    {
+      "titulo": "2. Verificação de Integridade e Volume de Undo",
+      "objetivo": "Avaliar transação ativa e evitar tempo excessivo de rollback.",
+      "risco": "leitura",
+      "comando": "SELECT s.inst_id, s.sid, s.username, t.used_ublk, t.used_urec FROM gv$transaction t JOIN gv$session s ON s.saddr = t.ses_addr;",
+      "olhar": "used_ublk > 50000 indica transação gigantesca.",
+      "armadilha": "Matar sessão antes de saber o tamanho do rollback."
+    },
+    {
+      "titulo": "3. Ação Corretiva Auditada",
+      "objetivo": "Normalizar a fila e documentar a intervenção.",
+      "risco": "destrutivo",
+      "comando": "ALTER SYSTEM KILL SESSION 'sid,serial#,@inst_id' IMMEDIATE;",
+      "olhar": "Confira se a sessão sumiu de gv$session após 5 segundos.",
+      "armadilha": "Nunca matar processos de background (PMON, SMON, LGWR, DBW0)."
+    }
+  ]
+}
