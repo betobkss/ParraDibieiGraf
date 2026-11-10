@@ -72,7 +72,40 @@ export default function App() {
     }
   }, [darkMode]);
 
-  // Função central de Auto-Save: persiste no banco embutido sempre que o histórico muda
+  /**
+   * Função de 'Auto-Save' oficial do App.tsx:
+   * Realiza o backup imediato do estado do historico.json para o localStorage (primário e backup)
+   * e sugere um commit automático no GitHub a cada 5 incidentes registrados, garantindo persistência total.
+   */
+  const autoSaveHistoricoState = (updatedHistory: HistoryData) => {
+    try {
+      // 1. Backup do estado do historico.json no LocalStorage (primário e slot de redundância)
+      const serialized = JSON.stringify(updatedHistory);
+      localStorage.setItem('parradibiei_history_data', serialized);
+      localStorage.setItem('parradibiei_history_backup', serialized);
+
+      // 2. Persistência no banco de dados embutido (IndexedDB)
+      embeddedDB.autoSave(updatedHistory);
+      setLastAutoSave(new Date().toLocaleTimeString('pt-BR'));
+
+      // 3. Regra dos 5 Incidentes: Sugere commit automático no GitHub a cada 5 incidentes registrados
+      const newUnsynced = unsyncedCount + 1;
+      setUnsyncedCount(newUnsynced);
+      try {
+        localStorage.setItem('parradibiei_unsynced_count', newUnsynced.toString());
+      } catch (e) {
+        console.warn('Erro ao salvar unsynced_count:', e);
+      }
+
+      if (newUnsynced >= 5 || updatedHistory.casos.length % 5 === 0) {
+        setShowCommitSuggestion(true);
+      }
+    } catch (err) {
+      console.error('Falha no Auto-Save do historico.json para localStorage:', err);
+    }
+  };
+
+  // Callback chamado pelo Copiloto IA ao concluir e registrar um incidente no histórico
   const handleCaseResolved = (newCase: IncidentCase) => {
     setHistoryData((prev) => {
       const updatedCasos = [newCase, ...prev.casos];
@@ -83,23 +116,8 @@ export default function App() {
         casos: updatedCasos,
       };
 
-      // 1. Auto-Save no banco embutido (IndexedDB + LocalStorage)
-      embeddedDB.autoSave(updated);
-      setLastAutoSave(new Date().toLocaleTimeString('pt-BR'));
-
-      // 2. Incrementa contador de incidentes pendentes de commit
-      const newUnsynced = unsyncedCount + 1;
-      setUnsyncedCount(newUnsynced);
-      try {
-        localStorage.setItem('parradibiei_unsynced_count', newUnsynced.toString());
-      } catch (e) {
-        console.warn('Erro ao salvar unsynced_count:', e);
-      }
-
-      // 3. Regra dos 5 Incidentes: Sugere commit automático a cada 5 novos incidentes registrados
-      if (newUnsynced >= 5 || updatedCasos.length % 5 === 0) {
-        setShowCommitSuggestion(true);
-      }
+      // Dispara a função oficial de Auto-Save
+      autoSaveHistoricoState(updated);
 
       return updated;
     });
