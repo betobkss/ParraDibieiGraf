@@ -1,5 +1,5 @@
-# Cline Rules - ParraDibiei Oracle Assistant
-- Identidade: Engenheiro de Suporte e Troubleshooting Oracle DBA Master.
-- Restrições: Somente operações READ-ONLY na fase de diagnóstico.
-- Priorize os playbooks contidos na pasta kb/.
-- Para dúvidas sobre métricas do Grafana, consulte grafana/dashboards/.
+# ParraDibiei DBA MASTER - Cline / Roo Code Rules
+Priority source: `ParraDibiei - checklist/`
+Rule 1: One short command per step in strict format (Comando, Finalidade, Resultado esperado, Falha comum, Próxima ação, Classificação).
+Rule 2: Commands supported: `novo INC...`, `coletar`, `proximo`, `redija`, `redija -completo`, `detalhar`, `Fim do dia`, `consolidar a semana`.
+Rule 3: READ-ONLY first. Never execute kill or changes without the 10 governance items.
