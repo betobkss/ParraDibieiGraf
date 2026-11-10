@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Bot,
   Terminal,
@@ -76,6 +76,41 @@ export const AiCopilotStudio: React.FC<AiCopilotStudioProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCaseSavedToHistory, setIsCaseSavedToHistory] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Escuta tecla ESC para sair de tela cheia
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  // Alterna Tela Cheia com suporte ao HTML5 Fullscreen API
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      setIsFullscreen(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback CSS é acionado pelo isFullscreen
+      }
+    } else {
+      setIsFullscreen(false);
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Ignora
+      }
+    }
+  };
 
   // Pre-configured simulation scenario: Enqueue TX Row Lock
   const initialMessages: Message[] = [
@@ -325,115 +360,143 @@ Regras para Respostas:
   }
 }`;
 
+  // Auto scroll para o final das mensagens
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, currentStepIndex]);
+
   return (
-    <div className={`space-y-6 transition-all duration-200 ${isFullscreen ? 'fixed inset-0 z-50 bg-slate-950 p-4 sm:p-6 lg:p-8 overflow-y-auto' : ''}`}>
-      {/* Header Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-xl space-y-4">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950">
-              <Bot className="w-8 h-8" />
+    <div
+      className={`space-y-4 transition-all duration-200 ${
+        isFullscreen
+          ? 'fixed inset-0 z-50 bg-slate-950 p-2 sm:p-4 flex flex-col h-screen w-screen overflow-hidden'
+          : ''
+      }`}
+    >
+      {/* Header Banner - Versão Slim quando em Tela Cheia, Completa em modo normal */}
+      {isFullscreen ? (
+        <div className="px-4 py-2.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex items-center justify-between text-white shadow-lg shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center">
+              <Bot className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                  Copiloto de Troubleshooting Guiado por IA
-                </h1>
-                <span className="px-2 py-0.5 text-xs font-mono rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Universal: AI Studio · VS Code · Devin · Cursor · Claude
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <span>Copiloto ParraDibiei DBA Master</span>
+                <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  TELA CHEIA ATIVA
                 </span>
-                {isFullscreen && (
-                  <span className="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Modo Tela Cheia Ativo
-                  </span>
-                )}
-              </div>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                Transforme qualquer inteligência artificial no seu <strong>DBA Master Copilot</strong>. Basta descompactar a pasta no seu projeto ou apontar o local para o chat: a IA reconhece as regras de segurança, consulta os 40 playbooks e conduz o diagnóstico passo a passo.
+              </h2>
+              <p className="text-[11px] text-slate-400">
+                Troubleshooting Guiado Passo a Passo · Modo 100% READ-ONLY · Comandos ASCII
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            {/* Fullscreen Zen Mode Button */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="px-3.5 py-2.5 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white border border-indigo-400/40 font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
-              title={isFullscreen ? 'Restaurar tamanho padrão' : 'Expandir Chat para Tela Cheia (Zen Mode)'}
+              onClick={toggleFullscreen}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Pressione ESC ou clique para sair da tela cheia"
             >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-4 h-4 text-amber-300" />
-                  <span>Sair da Tela Cheia</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-4 h-4 text-emerald-300" />
-                  <span>Expandir Tela Cheia</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={() => triggerZipDownload(PARRA_DIBIEI_FULL_ZIP_BASE64, 'ParraDibiei_Completo_Com_Grafana_e_IA.zip')}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              <FolderDown className="w-4 h-4" />
-              <span>Baixar Framework (.ZIP)</span>
-            </button>
-            <button
-              onClick={() => triggerZipDownload(PARRA_DIBIEI_COPILOT_ZIP_BASE64, 'ParraDibiei_Copiloto_IA_Universal.zip')}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition-all active:scale-95"
-            >
-              <Download className="w-4 h-4 text-indigo-400" />
-              <span>Regras IA (16 KB)</span>
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span>Sair da Tela Cheia (ESC)</span>
             </button>
           </div>
         </div>
+      ) : (
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-xl space-y-4">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950">
+                <Bot className="w-8 h-8" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Copiloto de Troubleshooting Guiado por IA
+                  </h1>
+                  <span className="px-2 py-0.5 text-xs font-mono rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Universal: AI Studio · VS Code · Devin · Cursor · Claude
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                  Transforme qualquer inteligência artificial no seu <strong>DBA Master Copilot</strong>. Basta descompactar a pasta no seu projeto ou apontar o local para o chat: a IA reconhece as regras de segurança, consulta os 40 playbooks e conduz o diagnóstico passo a passo.
+                </p>
+              </div>
+            </div>
 
-        {/* Subtabs */}
-        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-indigo-900/60">
-          <button
-            onClick={() => setActiveSubTab('simulator')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
-              activeSubTab === 'simulator'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
-            <span>1. Simulador Interativo do Chat Copiloto</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab('guide')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
-              activeSubTab === 'guide'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>2. Como Conectar no VS Code / Devin / Cursor / Claude</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab('files')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
-              activeSubTab === 'files'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-            }`}
-          >
-            <FileCode className="w-3.5 h-3.5" />
-            <span>3. Arquivos de Regras & Prompts</span>
-          </button>
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              {/* Fullscreen Zen Mode Button */}
+              <button
+                onClick={toggleFullscreen}
+                className="px-3.5 py-2.5 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white border border-indigo-400/40 font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                title="Expandir Chat para Tela Cheia (Zen Mode)"
+              >
+                <Maximize2 className="w-4 h-4 text-emerald-300" />
+                <span>Expandir Tela Cheia</span>
+              </button>
+
+              <button
+                onClick={() => triggerZipDownload(PARRA_DIBIEI_FULL_ZIP_BASE64, 'ParraDibiei_Completo_Com_Grafana_e_IA.zip')}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <FolderDown className="w-4 h-4" />
+                <span>Baixar Framework (.ZIP)</span>
+              </button>
+              <button
+                onClick={() => triggerZipDownload(PARRA_DIBIEI_COPILOT_ZIP_BASE64, 'ParraDibiei_Copiloto_IA_Universal.zip')}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4 text-indigo-400" />
+                <span>Regras IA (16 KB)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Subtabs */}
+          <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-indigo-900/60">
+            <button
+              onClick={() => setActiveSubTab('simulator')}
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
+                activeSubTab === 'simulator'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+              <span>1. Simulador Interativo do Chat Copiloto</span>
+            </button>
+            <button
+              onClick={() => setActiveSubTab('guide')}
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
+                activeSubTab === 'guide'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>2. Como Conectar no VS Code / Devin / Cursor / Claude</span>
+            </button>
+            <button
+              onClick={() => setActiveSubTab('files')}
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
+                activeSubTab === 'files'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              <span>3. Arquivos de Regras & Prompts</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TAB 1: SIMULADOR INTERATIVO DO CHAT COPILOTO */}
       {activeSubTab === 'simulator' && (
-        <div className="space-y-4">
+        <div className={`space-y-3 ${isFullscreen ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
           {/* Quick Symptom Trigger Pills */}
-          <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+          <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 shrink-0">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
               💡 Clique em um sintoma comum para testar o Copiloto ao vivo:
             </span>
@@ -481,7 +544,58 @@ Regras para Respostas:
           </div>
 
           {/* Interactive Chat Stream Area */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col h-[620px]">
+          <div
+            className={`rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col ${
+              isFullscreen ? 'flex-1 min-h-0' : 'h-[620px]'
+            }`}
+          >
+            {/* Header Toolbar do Chat */}
+            <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                  DBA MASTER TERMINAL
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                  READ-ONLY TRIAGE
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessages(initialMessages);
+                    setCurrentStepIndex(0);
+                    setIsCaseSavedToHistory(false);
+                  }}
+                  className="px-2.5 py-1 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs flex items-center gap-1"
+                  title="Reiniciar conversa / Nova sessão"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px]">Reiniciar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="px-3 py-1.5 text-slate-700 dark:text-slate-200 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors text-xs flex items-center gap-1.5 font-semibold cursor-pointer"
+                  title={isFullscreen ? 'Restaurar tamanho normal (ESC)' : 'Expandir Chat para Tela Cheia Total'}
+                >
+                  {isFullscreen ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 text-amber-300" />
+                      <span className="text-[11px]">Sair Tela Cheia (ESC)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                      <span className="text-[11px]">Tela Cheia (Zen Mode)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
             {/* Chat Messages Log */}
             <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
               {messages.map((msg, idx) => (
@@ -606,6 +720,7 @@ Regras para Respostas:
                   </div>
                 </div>
               ))}
+              <div ref={chatBottomRef} />
             </div>
 
             {/* Step Advancement / Actions Bar */}
