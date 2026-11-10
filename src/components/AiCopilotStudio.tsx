@@ -34,6 +34,7 @@ import {
   PARRA_DIBIEI_FULL_ZIP_BASE64,
   PARRA_DIBIEI_COPILOT_ZIP_BASE64,
 } from '../utils/zipData';
+import { copyToClipboard } from '../utils/clipboard';
 
 interface AiCopilotStudioProps {
   lang: 'pt' | 'en';
@@ -123,10 +124,12 @@ export const AiCopilotStudio: React.FC<AiCopilotStudioProps> = ({
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
 
-  const handleCopy = (key: string, content: string) => {
-    navigator.clipboard.writeText(content);
-    setCopiedFile(key);
-    setTimeout(() => setCopiedFile(null), 2500);
+  const handleCopy = async (key: string, content: string) => {
+    const ok = await copyToClipboard(content);
+    if (ok) {
+      setCopiedFile(key);
+      setTimeout(() => setCopiedFile(null), 2500);
+    }
   };
 
   const startSymptom = (symptomName: string, errorOra?: string) => {
@@ -504,11 +507,13 @@ Regras para Respostas:
               </p>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const prompt = `Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master no framework de troubleshooting com investigações 100% Read-Only.`;
-                navigator.clipboard.writeText(prompt);
-                setCopiedFile('quick-boot');
-                setTimeout(() => setCopiedFile(null), 2000);
+                const ok = await copyToClipboard(prompt);
+                if (ok) {
+                  setCopiedFile('quick-boot');
+                  setTimeout(() => setCopiedFile(null), 2000);
+                }
               }}
               className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
             >
