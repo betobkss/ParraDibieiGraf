@@ -24,6 +24,11 @@ import {
   Layers,
   Server,
   Maximize2,
+  Sparkles,
+  Copy,
+  Check,
+  AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { TabType } from '../types/parradibiei';
 import { triggerZipDownload, PARRA_DIBIEI_FULL_ZIP_BASE64 } from '../utils/zipData';
@@ -48,6 +53,8 @@ export const Header: React.FC<HeaderProps> = ({
   totalCasesCount,
 }) => {
   const [showGitModal, setShowGitModal] = useState(false);
+  const [showPersistenceModal, setShowPersistenceModal] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const repoName = 'betobkss/ParraDibieiGraf';
   const repoUrl = 'https://github.com/betobkss/ParraDibieiGraf';
   const lastPushTimestamp = '07/11/2026 09:31 UTC';
@@ -186,6 +193,17 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Persistência em Novas Sessões IA Button */}
+          <button
+            onClick={() => setShowPersistenceModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/80 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs text-indigo-700 dark:text-indigo-300 font-semibold transition-all shadow-xs cursor-pointer"
+            title="Como abrir novos chats mantendo o ParraDibiei DBA Master e todos os arquivos"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+            <span className="hidden sm:inline">Persistência IA (Novas Sessões)</span>
+            <span className="sm:hidden">Persistência</span>
+          </button>
+
           {/* GitHub Integration Status Indicator */}
           <button
             onClick={() => setShowGitModal(true)}
@@ -480,6 +498,165 @@ export const Header: React.FC<HeaderProps> = ({
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors"
               >
                 {lang === 'pt' ? 'Fechar' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Persistência em Novas Sessões da IA */}
+      {showPersistenceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    Persistência do ParraDibiei em Novas Sessões & Chats
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Como manter o agente DBA Master ativo em qualquer nova conversa do AI Studio ou outros LLMs
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPersistenceModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Diagnóstico do Print Anexado */}
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2 text-xs">
+              <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Por que uma sessão nova &quot;Untitled&quot; começou a criar um app do zero?</span>
+              </div>
+              <p className="leading-relaxed text-[11px] text-amber-900/90 dark:text-amber-200/90">
+                No Google AI Studio Build, cada nova janela de chat criada com <strong>&quot;+ Novo Chat&quot;</strong> roda em uma máquina virtual (sandbox) 100% isolada e vazia. A IA do novo chat não acessa os arquivos do applet anterior por padrão, por isso ela começou a gerar do zero (como visto no seu print).
+              </p>
+            </div>
+
+            {/* As 3 Formas Oficiais de Persistir */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Escolha Como Deseja Continuar nas Próximas Sessões:
+              </h4>
+
+              {/* Opção 1: Botão Remix */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px]">1</span>
+                    Opção Recomendada no AI Studio: Botão &quot;Remix&quot;
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                    Zero Digitação
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Em vez de clicar em &quot;+ Novo Chat&quot; na home, clique no botão <strong>&quot;Remix&quot;</strong> localizado na barra superior do AI Studio (ao lado de &quot;Share&quot; e &quot;Publish&quot;, como visto no print do seu projeto ativo). O <em>Remix</em> clona instantaneamente <strong>todos os 99 arquivos, a base embutida, o histórico e todos os scripts Python</strong> para a nova sessão.
+                </p>
+              </div>
+
+              {/* Opção 2: Conectar ao Repositório GitHub Oficial */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px]">2</span>
+                    Em Qualquer Novo Chat: Clonar o GitHub Oficial
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                    GitHub Ativo
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Em qualquer nova sessão ou chat, basta colar esta frase exata no primeiro prompt:
+                </p>
+                <div className="p-2.5 bg-black/60 rounded-lg font-mono text-[11px] text-emerald-400 flex items-center justify-between">
+                  <code>Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master.</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master.');
+                      setCopiedPrompt(true);
+                      setTimeout(() => setCopiedPrompt(false), 2000);
+                    }}
+                    className="p-1 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Opção 3: Injetor de Boot Prompt (1-Clique) */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[11px]">3</span>
+                    Boot Prompt Mestre (Para Colar em Qualquer LLM / Chat)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Contém a declaração completa do <strong>ParraDibiei DBA Master</strong>, protocolo 100% Read-Only, os comandos operacionais (<code className="text-indigo-400">novo INCxxxxx</code>, <code className="text-indigo-400">coletar</code>, <code className="text-indigo-400">redija</code>, <code className="text-indigo-400">detalhar</code>) e os contratos de relatórios.
+                </p>
+
+                <button
+                  onClick={() => {
+                    const prompt = `# PARRADIBIEI | DBA MASTER | TROUBLESHOOTING GUIADO & OPERACIONAL
+
+Você é o ParraDibiei DBA MASTER, agente operacional sênior de troubleshooting, Health Check, RCA e melhoria contínua.
+Atue em português técnico, direto e baseado em evidências, como um DBA sênior ao lado do executor.
+Repositório Oficial do Framework: https://github.com/betobkss/ParraDibieiGraf (branch main)
+
+Especialidades: Oracle, Exadata, RAC, CDB/PDB, Data Guard, Broker, RMAN, ASM, OEM e Linux.
+
+⚙️ MODELO OPERACIONAL & SEGURANÇA:
+- Todas as investigações são 100% READ-ONLY. Nenhuma alteração em produção sem os 10 itens obrigatórios de governança.
+- O DBA executor roda os comandos no SQL*Plus/Bash e retorna o SYSOUT completo.
+- Forneça UM comando curto por vez. Valide o SYSOUT antes do próximo passo.
+- Comandos reconhecidos:
+  * novo INCxxxxx <hostname> <sintoma> (Inicia novo caso do zero)
+  * coletar (Gera checklist e queries pertinentes)
+  * proximo (Avança de hipótese descartada para nova hipótese)
+  * redija (Gera diagnóstico padrão Support Platform)
+  * detalhar (Gera RCA completo com 5 Porquês e lições aprendidas)
+  * consolidar a semana (Consolida erros, acertos e melhorias)
+
+Base de Dados Embutida & Grafana:
+- Todos os casos resolvidos alimentam o historico.json e geram ações preventivas no MELHORIA.py.
+- Relatórios cumprem o Contrato EML estrito (13 imagens inline, 8 seções de contenção, zero CIDs quebrados).`;
+                    navigator.clipboard.writeText(prompt);
+                    setCopiedPrompt(true);
+                    setTimeout(() => setCopiedPrompt(false), 2500);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                >
+                  {copiedPrompt ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-300" />
+                      <span>✔ Prompt Mestre Copiado para a Área de Transferência!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copiar Prompt Mestre de Boot (1-Clique)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+              <button
+                onClick={() => setShowPersistenceModal(false)}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
+              >
+                Entendido
               </button>
             </div>
           </div>

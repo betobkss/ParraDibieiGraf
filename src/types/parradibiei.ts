@@ -53,6 +53,41 @@ export interface HistoryData {
   casos: IncidentCase[];
 }
 
+export interface MelhoriaItem {
+  id: string;
+  caso_origem_id: string;
+  titulo: string;
+  categoria: 'Infra' | 'Banco' | 'Aplicacao' | 'Capacity' | 'Backup' | 'Configuracao';
+  prioridade: 'P1 - Alta' | 'P2 - Media' | 'P3 - Baixa';
+  status: 'PENDENTE' | 'EM_ANDAMENTO' | 'IMPLEMENTADA';
+  acao_preventiva: string;
+  ganho_resiliencia: string;
+  data_criacao: string;
+}
+
+export interface HealthCheckRecord {
+  id: string;
+  data: string;
+  janela: string;
+  score: number;
+  status: 'SAUDAVEL' | 'ALERTA' | 'CRITICO';
+  imagens_count: number;
+  top_wait: string;
+  pct_fra: number;
+  reincidencias: number;
+  bloqueios_ativos: number;
+  relatorio_eml_valido: boolean;
+}
+
+export interface UnifiedEmbeddedDatabase {
+  versao: string;
+  atualizado_em: string;
+  banco: string;
+  casos: IncidentCase[];
+  melhorias: MelhoriaItem[];
+  healthchecks: HealthCheckRecord[];
+}
+
 export interface WaitClassMetric {
   name: string;
   pct: number;
@@ -65,3 +100,4 @@ export interface TablespaceMetric {
   freeGb: number;
   status: 'ok' | 'warn' | 'crit';
 }
+

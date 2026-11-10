@@ -495,6 +495,37 @@ Regras para Respostas:
       {/* TAB 1: SIMULADOR INTERATIVO DO CHAT COPILOTO */}
       {activeSubTab === 'simulator' && (
         <div className={`space-y-3 ${isFullscreen ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
+          {/* Persistência em Novas Sessões Callout */}
+          <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 via-sky-500/10 to-indigo-500/10 border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+              <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                <strong>Persistência em Novos Chats:</strong> No AI Studio, para não abrir uma sessão em branco, use o botão <strong>Remix</strong> no topo ou inicie o chat com: <code className="px-1.5 py-0.5 rounded bg-black/40 text-emerald-400 font-mono text-[11px]">Clone https://github.com/betobkss/ParraDibieiGraf</code>
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const prompt = `Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master no framework de troubleshooting com investigações 100% Read-Only.`;
+                navigator.clipboard.writeText(prompt);
+                setCopiedFile('quick-boot');
+                setTimeout(() => setCopiedFile(null), 2000);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+            >
+              {copiedFile === 'quick-boot' ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copiar Comando de Boot</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Quick Symptom Trigger Pills */}
           <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 shrink-0">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">

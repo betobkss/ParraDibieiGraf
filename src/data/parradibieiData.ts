@@ -3,7 +3,13 @@
  * Contém o índice dos 43 playbooks homologados e o histórico de incidentes inicial
  */
 
-import { PlaybookItem, HistoryData } from '../types/parradibiei';
+import {
+  PlaybookItem,
+  HistoryData,
+  MelhoriaItem,
+  HealthCheckRecord,
+  UnifiedEmbeddedDatabase,
+} from '../types/parradibiei';
 
 export const INITIAL_HISTORY: HistoryData = {
   versao: '2.0.0-enterprise',
@@ -55,6 +61,104 @@ export const INITIAL_HISTORY: HistoryData = {
       arquivos: ['metadata.json', 'findings.csv', 'relatorio.md'],
     },
   ],
+};
+
+export const INITIAL_MELHORIAS: MelhoriaItem[] = [
+  {
+    id: 'MELH_20261106_01',
+    caso_origem_id: 'CASO_20261106_LOCK_01',
+    titulo: 'Ajustar Idle Timeout do Connection Pool Web para 60s',
+    categoria: 'Aplicacao',
+    prioridade: 'P1 - Alta',
+    status: 'EM_ANDAMENTO',
+    acao_preventiva: 'Configurar maxIdleTimeout=60000ms no HikariCP do servidor srv-app-prod02 para encerrar conexões inativas antes de reter locks de linha.',
+    ganho_resiliencia: 'Elimina 85% dos enq: TX por transação zumbi.',
+    data_criacao: '2026-11-06',
+  },
+  {
+    id: 'MELH_20261105_02',
+    caso_origem_id: 'CASO_20261105_FRA_02',
+    titulo: 'Automação de Crosscheck e Delete Expired no RMAN Cron',
+    categoria: 'Backup',
+    prioridade: 'P2 - Media',
+    status: 'IMPLEMENTADA',
+    acao_preventiva: 'Adicionar rotina diária no script rman_maintenance.sh para validar catálogo e catalogar archives órfãos na FRA.',
+    ganho_resiliencia: 'Garante 25% de margem livre permanente no disco +RECO.',
+    data_criacao: '2026-11-05',
+  },
+  {
+    id: 'MELH_20261104_03',
+    caso_origem_id: 'CASO_20261104_ORA1555_03',
+    titulo: 'Criação de Particionamento Range na Tabela TB_FATURAMENTO',
+    categoria: 'Banco',
+    prioridade: 'P2 - Media',
+    status: 'PENDENTE',
+    acao_preventiva: 'Implementar particionamento mensal por DT_FATURAMENTO para reduzir varredura de UNDO e evitar ORA-01555 em relatórios longos.',
+    ganho_resiliencia: 'Redução de 70% no tempo de execução de queries de fechamento mensal.',
+    data_criacao: '2026-11-04',
+  },
+  {
+    id: 'MELH_20261103_04',
+    caso_origem_id: 'AUDITORIA_S04',
+    titulo: 'Expansão de Limiar de Alerta do Listener Log (500MB -> Rotação)',
+    categoria: 'Configuracao',
+    prioridade: 'P3 - Baixa',
+    status: 'IMPLEMENTADA',
+    acao_preventiva: 'Deploy do script rotacionar_listener_log.sh com logrotate sem parada do listener.',
+    ganho_resiliencia: 'Previne lentidão de fork no Listener Oracle.',
+    data_criacao: '2026-11-03',
+  },
+];
+
+export const INITIAL_HEALTHCHECKS: HealthCheckRecord[] = [
+  {
+    id: 'HC_20261107_09h56',
+    data: '07/11/2026 09:56',
+    janela: 'janela 09h00 a 09h56',
+    score: 96,
+    status: 'SAUDAVEL',
+    imagens_count: 13,
+    top_wait: 'db file sequential read',
+    pct_fra: 68.2,
+    reincidencias: 0,
+    bloqueios_ativos: 0,
+    relatorio_eml_valido: true,
+  },
+  {
+    id: 'HC_20261106_14h30',
+    data: '06/11/2026 14:30',
+    janela: 'janela 13h30 a 14h30',
+    score: 64,
+    status: 'CRITICO',
+    imagens_count: 13,
+    top_wait: 'enq: TX - row lock contention',
+    pct_fra: 74.0,
+    reincidencias: 1,
+    bloqueios_ativos: 4,
+    relatorio_eml_valido: true,
+  },
+  {
+    id: 'HC_20261105_09h15',
+    data: '05/11/2026 09:15',
+    janela: 'janela 08h00 a 09h15',
+    score: 52,
+    status: 'ALERTA',
+    imagens_count: 13,
+    top_wait: 'archiver stuck',
+    pct_fra: 93.8,
+    reincidencias: 0,
+    bloqueios_ativos: 0,
+    relatorio_eml_valido: true,
+  },
+];
+
+export const INITIAL_UNIFIED_DB: UnifiedEmbeddedDatabase = {
+  versao: '2.5.0-unified-enterprise',
+  atualizado_em: new Date().toISOString(),
+  banco: 'PROD_ORCL_RAC_EXADATA',
+  casos: INITIAL_HISTORY.casos,
+  melhorias: INITIAL_MELHORIAS,
+  healthchecks: INITIAL_HEALTHCHECKS,
 };
 
 export const PLAYBOOKS_CATALOG: PlaybookItem[] = [
