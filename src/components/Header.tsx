@@ -3,7 +3,7 @@
  * Barra superior oficial do framework ParraDibiei - API & Oracle DBA Grafana Studio
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Database,
   Bot,
@@ -85,6 +85,18 @@ export const Header: React.FC<HeaderProps> = ({
   const repoUrl = 'https://github.com/betobkss/ParraDibieiGraf';
   const lastPushTimestamp = '07/11/2026 09:31 UTC';
   const lastCommitHash = 'a1a36a7';
+
+  // ESC key listener to close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowPersistenceModal(false);
+        setShowGitModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleDownloadInstructions = () => {
     try {
@@ -405,8 +417,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* GitHub Integration Details Modal */}
       {showGitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowGitModal(false);
+          }}
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 flex justify-center items-start animate-in fade-in duration-150"
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full my-4 p-5 sm:p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
@@ -555,173 +575,192 @@ export const Header: React.FC<HeaderProps> = ({
       )}
       {/* Modal de Persistência em Novas Sessões da IA */}
       {showPersistenceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPersistenceModal(false);
+          }}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-2 sm:p-4 flex justify-center items-start animate-fade-in"
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full my-2 sm:my-4 shadow-2xl flex flex-col relative max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header (Fixed at top of card, never scrolls away) */}
+            <div className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 z-20">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     Persistência do ParraDibiei em Novas Sessões & Chats
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Como manter o agente DBA Master ativo em qualquer nova conversa do AI Studio ou outros LLMs
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowPersistenceModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="p-2 rounded-xl bg-slate-100 hover:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950/60 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-all cursor-pointer shrink-0 border border-transparent hover:border-rose-300 dark:hover:border-rose-800"
+                title="Fechar janela (ESC)"
+                aria-label="Fechar janela"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Diagnóstico do Print Anexado */}
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2 text-xs">
-              <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
-                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Por que uma sessão nova &quot;Untitled&quot; começou a criar um app do zero?</span>
+            {/* Modal Body (Scrollable inside the card) */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+              {/* Diagnóstico do Print Anexado */}
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2 text-xs">
+                <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>Por que uma sessão nova &quot;Untitled&quot; começou a criar um app do zero?</span>
+                </div>
+                <p className="leading-relaxed text-[11px] text-amber-900/90 dark:text-amber-200/90">
+                  No Google AI Studio Build, cada nova janela de chat criada com <strong>&quot;+ Novo Chat&quot;</strong> roda em uma máquina virtual (sandbox) 100% isolada e vazia. A IA do novo chat não acessa os arquivos do applet anterior por padrão, por isso ela começou a gerar do zero (como visto no seu print).
+                </p>
               </div>
-              <p className="leading-relaxed text-[11px] text-amber-900/90 dark:text-amber-200/90">
-                No Google AI Studio Build, cada nova janela de chat criada com <strong>&quot;+ Novo Chat&quot;</strong> roda em uma máquina virtual (sandbox) 100% isolada e vazia. A IA do novo chat não acessa os arquivos do applet anterior por padrão, por isso ela começou a gerar do zero (como visto no seu print).
-              </p>
+
+              {/* As 3 Formas Oficiais de Persistir */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Escolha Como Deseja Continuar nas Próximas Sessões:
+                </h4>
+
+                {/* Opção 1: Botão Remix */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px]">1</span>
+                      Opção Recomendada no AI Studio: Botão &quot;Remix&quot;
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                      Zero Digitação
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Em vez de clicar em &quot;+ Novo Chat&quot; na home, clique no botão <strong>&quot;Remix&quot;</strong> localizado na barra superior do AI Studio (ao lado de &quot;Share&quot; e &quot;Publish&quot;, como visto no print do seu projeto ativo). O <em>Remix</em> clona instantaneamente <strong>todos os 99 arquivos, a base embutida, o histórico e todos os scripts Python</strong> para a nova sessão.
+                  </p>
+                </div>
+
+                {/* Opção 2: Conectar ao Repositório GitHub Oficial */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px]">2</span>
+                      Em Qualquer Novo Chat: Clonar o GitHub Oficial
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                      GitHub Ativo
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Em qualquer nova sessão ou chat, basta colar esta frase exata no primeiro prompt:
+                  </p>
+                  <div className="p-2.5 bg-black/60 rounded-lg font-mono text-[11px] text-emerald-400 flex items-center justify-between gap-2">
+                    <code className="select-all overflow-x-auto">Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master.</code>
+                    <button
+                      onClick={async () => {
+                        const text = 'Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master.';
+                        const ok = await copyToClipboard(text);
+                        if (ok) {
+                          setCopiedClone(true);
+                          setTimeout(() => setCopiedClone(false), 2000);
+                        }
+                      }}
+                      className="p-1 text-slate-400 hover:text-white transition-colors shrink-0 cursor-pointer"
+                      title="Copiar comando de clone"
+                    >
+                      {copiedClone ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Opção 3: Injetor de Boot Prompt (1-Clique + Download + Área de Seleção) */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[11px]">3</span>
+                      Boot Prompt Mestre (Para Colar em Qualquer LLM, VS Code ou Chat)
+                    </span>
+                    <button
+                      onClick={handleDownloadInstructions}
+                      className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                      title="Baixar arquivo de instruções markdown"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>Baixar .MD</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Contém a declaração completa do <strong>ParraDibiei DBA Master</strong>, protocolo 100% Read-Only, os comandos operacionais (<code className="text-indigo-400">novo INCxxxxx</code>, <code className="text-indigo-400">coletar</code>, <code className="text-indigo-400">redija</code>, <code className="text-indigo-400">detalhar</code>) e os contratos de relatórios.
+                  </p>
+
+                  {/* Caixa de Texto Selecionável para Cópia Garantida */}
+                  <div className="relative">
+                    <textarea
+                      readOnly
+                      value={BOOT_PROMPT_TEXT}
+                      onFocus={(e) => e.target.select()}
+                      onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                      rows={6}
+                      className="w-full p-2.5 rounded-lg bg-black/60 border border-slate-700 font-mono text-[10px] text-slate-300 focus:outline-none focus:border-indigo-500 select-all resize-none leading-relaxed"
+                      title="Clique dentro para selecionar todo o texto automaticamente"
+                    />
+                    <span className="absolute bottom-2 right-2 text-[9px] text-slate-500 font-mono bg-black/80 px-1 rounded pointer-events-none">
+                      Clique para selecionar tudo
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        const ok = await copyToClipboard(BOOT_PROMPT_TEXT);
+                        if (ok) {
+                          setCopiedPrompt(true);
+                          setTimeout(() => setCopiedPrompt(false), 2500);
+                        }
+                      }}
+                      className="w-full sm:flex-1 py-2 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                    >
+                      {copiedPrompt ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-300" />
+                          <span>✔ Prompt Mestre Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copiar Prompt Mestre de Boot (1-Clique)</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadInstructions}
+                      className="w-full sm:w-auto py-2 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Baixar Arquivo .MD</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* As 3 Formas Oficiais de Persistir */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Escolha Como Deseja Continuar nas Próximas Sessões:
-              </h4>
-
-              {/* Opção 1: Botão Remix */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px]">1</span>
-                    Opção Recomendada no AI Studio: Botão &quot;Remix&quot;
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
-                    Zero Digitação
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Em vez de clicar em &quot;+ Novo Chat&quot; na home, clique no botão <strong>&quot;Remix&quot;</strong> localizado na barra superior do AI Studio (ao lado de &quot;Share&quot; e &quot;Publish&quot;, como visto no print do seu projeto ativo). O <em>Remix</em> clona instantaneamente <strong>todos os 99 arquivos, a base embutida, o histórico e todos os scripts Python</strong> para a nova sessão.
-                </p>
-              </div>
-
-              {/* Opção 2: Conectar ao Repositório GitHub Oficial */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px]">2</span>
-                    Em Qualquer Novo Chat: Clonar o GitHub Oficial
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
-                    GitHub Ativo
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Em qualquer nova sessão ou chat, basta colar esta frase exata no primeiro prompt:
-                </p>
-                <div className="p-2.5 bg-black/60 rounded-lg font-mono text-[11px] text-emerald-400 flex items-center justify-between gap-2">
-                  <code className="select-all overflow-x-auto">Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master.</code>
-                  <button
-                    onClick={async () => {
-                      const text = 'Clone e assuma o repositório https://github.com/betobkss/ParraDibieiGraf na branch main. Atue como ParraDibiei DBA Master.';
-                      const ok = await copyToClipboard(text);
-                      if (ok) {
-                        setCopiedClone(true);
-                        setTimeout(() => setCopiedClone(false), 2000);
-                      }
-                    }}
-                    className="p-1 text-slate-400 hover:text-white transition-colors shrink-0"
-                    title="Copiar comando de clone"
-                  >
-                    {copiedClone ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Opção 3: Injetor de Boot Prompt (1-Clique + Download + Área de Seleção) */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[11px]">3</span>
-                    Boot Prompt Mestre (Para Colar em Qualquer LLM, VS Code ou Chat)
-                  </span>
-                  <button
-                    onClick={handleDownloadInstructions}
-                    className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                    title="Baixar arquivo de instruções markdown"
-                  >
-                    <Download className="w-3 h-3" />
-                    <span>Baixar .MD</span>
-                  </button>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Contém a declaração completa do <strong>ParraDibiei DBA Master</strong>, protocolo 100% Read-Only, os comandos operacionais (<code className="text-indigo-400">novo INCxxxxx</code>, <code className="text-indigo-400">coletar</code>, <code className="text-indigo-400">redija</code>, <code className="text-indigo-400">detalhar</code>) e os contratos de relatórios.
-                </p>
-
-                {/* Caixa de Texto Selecionável para Cópia Garantida */}
-                <div className="relative">
-                  <textarea
-                    readOnly
-                    value={BOOT_PROMPT_TEXT}
-                    onFocus={(e) => e.target.select()}
-                    onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-                    rows={6}
-                    className="w-full p-2.5 rounded-lg bg-black/60 border border-slate-700 font-mono text-[10px] text-slate-300 focus:outline-none focus:border-indigo-500 select-all resize-none leading-relaxed"
-                    title="Clique dentro para selecionar todo o texto automaticamente"
-                  />
-                  <span className="absolute bottom-2 right-2 text-[9px] text-slate-500 font-mono bg-black/80 px-1 rounded pointer-events-none">
-                    Clique para selecionar tudo
-                  </span>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <button
-                    onClick={async () => {
-                      const ok = await copyToClipboard(BOOT_PROMPT_TEXT);
-                      if (ok) {
-                        setCopiedPrompt(true);
-                        setTimeout(() => setCopiedPrompt(false), 2500);
-                      }
-                    }}
-                    className="w-full sm:flex-1 py-2 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
-                  >
-                    {copiedPrompt ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-300" />
-                        <span>✔ Prompt Mestre Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span>Copiar Prompt Mestre de Boot (1-Clique)</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={handleDownloadInstructions}
-                    className="w-full sm:w-auto py-2 px-4 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Baixar Arquivo .MD</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+            {/* Modal Footer (Fixed at bottom of card) */}
+            <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
               <button
                 onClick={() => setShowPersistenceModal(false)}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
+                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Fechar (ESC)
+              </button>
+              <button
+                onClick={() => setShowPersistenceModal(false)}
+                className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md transition-colors cursor-pointer"
               >
                 Entendido
               </button>
