@@ -1,0 +1,181 @@
+#!/bin/bash
+# MongoDB Health Check - Argentina - ROOT ONLY
+# Version: 2.0
+# Usage: ./mongodb_check.sh
+# Scope: OS, capacity, logs, Ops Manager Agent, network and authenticated MongoDB checks.
+
+set -u
+set -o pipefail
+umask 077
+cleanup(){ unset PASS MONGO_PASS MONGO_USER 2>/dev/null || true; }
+trap cleanup EXIT HUP INT TERM
+[ "$#" -eq 0 ] || { echo "Usage: ./mongodb_check.sh"; exit 2; }
+[ "$(id -u)" -eq 0 ] || { echo "ERROR: execute as root."; exit 1; }
+
+SCRIPT_DIR="/APLICACIONES/MONGODB/scripts"
+SCRIPT_FILE="$SCRIPT_DIR/mongodb_check.sh"
+DB_CONF="/APLICACIONES/MONGODB/data01/automation-mongod.conf"
+DB_DATA_PATH="/APLICACIONES/MONGODB/data01"
+DB_LOG_FILE="/APLICACIONES/MONGODB/log/mongod01.log"
+AGENT_LOG="/var/log/mongodb-mms-automation/automation-agent-fatal.log"
+CRED_FILE="/usr/local/bin/config.mgdb"
+DB_USER="mongoadmin"
+AUTH_DB="admin"
+HOST_SHORT="$(hostname -s 2>/dev/null || hostname)"
+TS="$(date +%Y%m%d_%H%M%S)"
+OUT="/tmp/mongodb_healthcheck_ar_${HOST_SHORT}_${TS}.txt"
+ERR="/tmp/mongodb_healthcheck_ar_errors_${HOST_SHORT}_${TS}.txt"
+WARN="/tmp/mongodb_healthcheck_ar_warnings_${HOST_SHORT}_${TS}.txt"
+SPLIT="-------------------------------------------------------------------------------------------------"
+OVERALL="HEALTHY"; CAPACITY="HEALTHY"; NETWORK="NOT_TESTED"; AGENT="NOT_TESTED"; DATABASE="NOT_TESTED"
+# ANSI colors are shown only on an interactive terminal. Report files remain plain text.
+if [ -t 1 ] && [ "${NO_COLOR:-0}" != "1" ]; then COLOR_ENABLED=1; else COLOR_ENABLED=0; fi
+ESC=$(printf '\033'); RESET="${ESC}[0m"; BOLD="${ESC}[1m"; RED="${ESC}[31m"; GREEN="${ESC}[32m"; YELLOW="${ESC}[33m"; BLUE="${ESC}[34m"; MAGENTA="${ESC}[35m"; CYAN="${ESC}[36m"; GRAY="${ESC}[90m"
+: > "$OUT"; : > "$ERR"; : > "$WARN"
+# Keep the terminal colored while stripping ANSI sequences from the saved report.
+exec > >(tee >(sed -u "s/${ESC}\[[0-9;]*m//g" >> "$OUT")) 2>&1
+color(){ local c="$1"; shift; if [ "$COLOR_ENABLED" -eq 1 ]; then printf '%b%s%b\n' "$c" "$*" "$RESET"; else printf '%s\n' "$*"; fi; }
+section(){ echo; color "$CYAN$BOLD" "$SPLIT"; color "$CYAN$BOLD" "### $* ###"; color "$CYAN$BOLD" "$SPLIT"; }
+warning(){ local m="$(date '+%F %T') - $*"; echo "$m" >> "$WARN"; color "$YELLOW" "WARNING: $*"; [ "$OVERALL" = "HEALTHY" ] && OVERALL="ATTENTION"; }
+error(){ local m="$(date '+%F %T') - $*"; echo "$m" >> "$ERR"; color "$RED$BOLD" "ERROR: $*"; OVERALL="CRITICAL"; }
+status_color(){ case "$1" in HEALTHY|RUNNING|OK|PROD|DESA|TEST|HOMO) echo "$GREEN";; ATTENTION|NOT_TESTED|NOT_EXECUTED|UNKNOWN) echo "$YELLOW";; CRITICAL|EMERGENCY|STOPPED) echo "$RED$BOLD";; *) echo "$BLUE";; esac; }
+status_line(){ local label="$1" value="$2"; color "$(status_color "$value")" "$label: $value"; }
+conf(){ grep -Ei "^[[:space:]]*$1[[:space:]]*[:=]" "$DB_CONF" 2>/dev/null | grep -v '^[[:space:]]*#' | head -1 | sed -E 's/^[^:=]+[:=][[:space:]]*//' | tr -d '"'; }
+
+section "PRECHECK"
+echo "Execution path: $(readlink -f "$0")"
+echo "Expected directory: $SCRIPT_DIR"
+if [ "$(dirname "$(readlink -f "$0")")" != "$SCRIPT_DIR" ]; then
+  warning "Script is not running from the default directory $SCRIPT_DIR"
+fi
+if [ ! -d "$SCRIPT_DIR" ]; then
+  error "Default directory not found: $SCRIPT_DIR"
+fi
+
+MONGO_PS="$(ps -eo user=,pid=,ppid=,args= | awk '$4 ~ /(^|\/)mongod$/ {print; exit}')"
+DB_OWNER="$(echo "$MONGO_PS" | awk '{print $1}')"
+DB_PID="$(echo "$MONGO_PS" | awk '{print $2}')"
+DB_PORT="$(conf port)"; DB_REPLSET="$(conf replSetName)"; DB_BIND="$(conf 'bindIp|bind_ip')"
+DB_DATA_CONF="$(conf dbPath)"; DB_LOG_CONF="$(conf 'path|logpath')"
+[ -n "$DB_DATA_CONF" ] && DB_DATA_PATH="$DB_DATA_CONF"
+[ -n "$DB_LOG_CONF" ] && DB_LOG_FILE="$DB_LOG_CONF"
+case "$DB_PORT" in 26035) ENVIRONMENT="DESA";; 26071) ENVIRONMENT="TEST";; 26093) ENVIRONMENT="HOMO";; 32823) ENVIRONMENT="PROD";; *) ENVIRONMENT="UNKNOWN";; esac
+BIN_CLI="$(command -v mongosh 2>/dev/null || true)"
+DB_VERSION=""; [ -n "$DB_PID" ] && DB_VERSION="$(readlink -f /proc/$DB_PID/exe 2>/dev/null | sed -nE 's#.*mongodb-linux-x86_64-([^/]+)/bin/mongod#\1#p')"
+
+section "IDENTIFICATION"
+echo "Timestamp: $(date '+%F %T %z')"; echo "Host: $(hostname -f 2>/dev/null || hostname)"; echo "Delivery: ARGENTINA"; echo "Environment: $ENVIRONMENT"
+echo "Execution user: $(id -un)"; echo "OS: $(cat /etc/redhat-release 2>/dev/null || uname -s)"; echo "Kernel: $(uname -r)"; echo "OS uptime: $(uptime -p 2>/dev/null || uptime)"
+echo "MongoDB owner: ${DB_OWNER:-NOT FOUND}"; echo "MongoDB PID: ${DB_PID:-NOT FOUND}"; echo "MongoDB config: $DB_CONF"
+[ -n "$DB_PID" ] || error "Real mongod process not found"
+[ -f "$DB_CONF" ] || error "MongoDB config not found"
+
+section "MONGODB CONFIGURATION"
+echo "CLI: ${BIN_CLI:-NOT FOUND}"; echo "MongoDB version: ${DB_VERSION:-NOT FOUND}"; echo "Port: ${DB_PORT:-NOT FOUND}"; echo "Replica set: ${DB_REPLSET:-NOT FOUND}"; echo "Bind: ${DB_BIND:-NOT FOUND}"; echo "Data path: $DB_DATA_PATH"; echo "Log file: $DB_LOG_FILE"
+
+section "PROCESS AND LISTENER"
+echo "$MONGO_PS"
+if [ -n "$DB_PORT" ] && ss -lnt 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]${DB_PORT}$"; then color "$GREEN" "Listener port $DB_PORT: OK"; else error "Listener port ${DB_PORT:-UNKNOWN} not found"; fi
+
+section "FILESYSTEM AND CAPACITY"
+DF_LINE="$(df -P "$DB_DATA_PATH" 2>/dev/null | tail -1)"; echo "$DF_LINE"
+USE="$(echo "$DF_LINE" | awk '{gsub(/%/,"",$5); print $5}')"
+if [ "${USE:-0}" -ge 95 ]; then CAPACITY="EMERGENCY"; error "Filesystem at ${USE}% - EMERGENCY"; elif [ "${USE:-0}" -ge 90 ]; then CAPACITY="CRITICAL"; error "Filesystem at ${USE}% - CRITICAL"; elif [ "${USE:-0}" -ge 80 ]; then CAPACITY="ATTENTION"; warning "Filesystem at ${USE}% - ATTENTION"; fi
+du -xsh /APLICACIONES/MONGODB/* 2>/dev/null | sort -h || true
+df -Pi "$DB_DATA_PATH" 2>/dev/null | tail -1
+find "$DB_DATA_PATH" -maxdepth 1 -type f -name '*.wt' -printf '%s %p\n' 2>/dev/null | sort -n | tail -10 | awk '{printf "%.1fG %s\n",$1/1073741824,$2}'
+
+section "LOG AND AUTOMATION AGENT"
+if [ -f "$DB_LOG_FILE" ]; then
+  echo "MongoDB log: $DB_LOG_FILE"; echo "Last modification: $(stat -c '%y' "$DB_LOG_FILE" | cut -d. -f1)"
+  MATCH="$(grep -Ei '"s":"(E|F)"|fatal|panic|corrupt|no space left|out of disk' "$DB_LOG_FILE" | tail -30 || true)"
+  [ -n "$MATCH" ] && { warning "Critical/error patterns found in MongoDB log"; echo "$MATCH"; } || echo "No critical pattern in active MongoDB log."
+else error "MongoDB log not found"; fi
+if pgrep -f '/mongodb-mms-automation-agent([[:space:]]|$)' >/dev/null 2>&1; then AGENT="RUNNING"; color "$GREEN" "Automation Agent: RUNNING"; else AGENT="STOPPED"; error "Automation Agent stopped"; fi
+if [ -f "$AGENT_LOG" ] && grep -qi 'is not a known automation configuration flag' "$AGENT_LOG"; then warning "Unknown Automation Agent configuration flag detected"; grep -i 'is not a known automation configuration flag' "$AGENT_LOG" | tail -10; fi
+
+section "AUTHENTICATION FILE"
+AUTH_OK="NO"
+AUTH_OUT=""
+if [ ! -f "$CRED_FILE" ]; then error "Credential file not found: $CRED_FILE"
+else
+  MODE="$(stat -c '%a' "$CRED_FILE")"; OWNER="$(stat -c '%U' "$CRED_FILE")"; GROUP="$(stat -c '%G' "$CRED_FILE")"
+  echo "Credential file: $CRED_FILE"; echo "Owner/Group/Mode: $OWNER/$GROUP/$MODE"
+  GROUP_DIGIT="${MODE: -2:1}"; OTHER_DIGIT="${MODE: -1}"
+  if [ "$OWNER" != "root" ]; then
+    error "Credential file must be owned by root"
+  elif [ "$OTHER_DIGIT" != "0" ]; then
+    error "Credential file must have no permissions for other users"
+  elif [ "$GROUP_DIGIT" != "0" ] && [ "$GROUP" != "root" ]; then
+    error "Credential file group read is allowed only when group owner is root"
+  elif [ "$MODE" != "600" ] && [ "$MODE" != "640" ] && [ "$MODE" != "400" ] && [ "$MODE" != "440" ]; then
+    error "Credential file mode must be 400, 440, 600 or 640"
+  else
+    AUTH_OK="YES"
+    color "$GREEN" "Credential file security: OK"
+  fi
+fi
+
+section "AUTHENTICATED DATABASE CHECKS"
+if [ "$AUTH_OK" = "YES" ] && [ -n "$BIN_CLI" ] && [ -n "$DB_PORT" ]; then
+  set +x
+  PASS="$(awk 'NR==1 {print $2}' "$CRED_FILE")"
+  if [ -z "$PASS" ]; then error "Password field is empty in credential file"; DATABASE="CRITICAL"
+  else
+    AUTH_OUT="$(MONGO_PASS="$PASS" MONGO_USER="$DB_USER" "$BIN_CLI" --host 127.0.0.1 --port "$DB_PORT" --quiet --eval '
+      const a=db.getSiblingDB("admin");
+      const auth=a.auth(process.env.MONGO_USER, process.env.MONGO_PASS);
+      if (!(auth === 1 || (auth && auth.ok === 1))) { throw new Error("AUTH_FAILED"); }
+      const h=a.hello();
+      printjson({check:"hello",setName:h.setName,isWritablePrimary:h.isWritablePrimary,primary:h.primary,secondary:h.secondary,hosts:h.hosts});
+      const s=rs.status();
+      const primary=s.members.find(m=>m.stateStr==="PRIMARY");
+      s.members.forEach(m=>{ const lag=primary ? Math.max(0,(primary.optimeDate-m.optimeDate)/1000) : null; print(m.name+" | "+m.stateStr+" | health="+m.health+" | lagSeconds="+lag+" | optime="+m.optimeDate); });
+      const bad=s.members.filter(m=>m.health!==1 || !["PRIMARY","SECONDARY","ARBITER"].includes(m.stateStr));
+      if(bad.length){ print("BAD_MEMBER_STATE | "+bad.map(m=>m.name+":"+m.stateStr+":health="+m.health).join(",")); }
+      try { const c=a.serverStatus().connections; const usedPct=((c.current/(c.current+c.available))*100).toFixed(2); print("CONNECTIONS | current="+c.current+" | available="+c.available+" | usedPct="+usedPct+" | rejected="+c.rejected+" | active="+c.active); } catch(e) { print("OPTIONAL_CHECK_ERROR | connections | "+e.message); }
+      try { const wt=a.serverStatus().wiredTiger.cache; const used=wt["bytes currently in the cache"]; const max=wt["maximum bytes configured"]; const dirty=wt["tracked dirty bytes in the cache"]; print("WIREDTIGER_CACHE | usedPct="+((used/max)*100).toFixed(2)+" | dirtyPct="+((dirty/max)*100).toFixed(2)+" | aggressive="+wt["eviction currently operating in aggressive mode"]+" | timeouts="+wt["operations timed out waiting for space in cache"]); } catch(e) { print("OPTIONAL_CHECK_ERROR | wiredTigerCache | "+e.message); }
+      try { const local=a.getSiblingDB("local"); const first=local.getCollection("oplog.rs").find().sort({$natural:1}).limit(1).next(); const last=local.getCollection("oplog.rs").find().sort({$natural:-1}).limit(1).next(); const hours=(last.ts.getHighBits()-first.ts.getHighBits())/3600; print("OPLOG_WINDOW | hours="+hours.toFixed(2)); } catch(e) { print("OPTIONAL_CHECK_ERROR | oplogWindow | "+e.message); }
+    ' 2>&1)"; RC=$?
+    unset PASS MONGO_PASS MONGO_USER
+    if [ $RC -eq 0 ]; then
+      DATABASE="HEALTHY"; echo "$AUTH_OUT"
+      if echo "$AUTH_OUT" | grep -q "BAD_MEMBER_STATE"; then DATABASE="CRITICAL"; error "Replica Set contains unhealthy member state"; fi
+      if echo "$AUTH_OUT" | grep -q "OPTIONAL_CHECK_ERROR"; then warning "One or more optional authenticated checks failed"; fi
+      OPLOG_HOURS="$(echo "$AUTH_OUT" | sed -nE 's/^OPLOG_WINDOW \| hours=([0-9.]+)$/\1/p' | tail -1)"
+      if [ -n "$OPLOG_HOURS" ]; then OPLOG_INT="${OPLOG_HOURS%.*}"; if [ "$OPLOG_INT" -lt 12 ]; then DATABASE="CRITICAL"; error "Oplog window below 12 hours: ${OPLOG_HOURS}h"; elif [ "$OPLOG_INT" -lt 24 ]; then warning "Oplog window below 24 hours: ${OPLOG_HOURS}h"; fi; fi
+      WT_TIMEOUTS="$(echo "$AUTH_OUT" | sed -nE 's/^WIREDTIGER_CACHE .*\| timeouts=([0-9]+)$/\1/p' | tail -1)"
+      [ -n "$WT_TIMEOUTS" ] && [ "$WT_TIMEOUTS" -gt 0 ] && warning "WiredTiger cache timeouts detected: $WT_TIMEOUTS"
+      CONN_REJECTED="$(echo "$AUTH_OUT" | sed -nE 's/^CONNECTIONS .*\| rejected=([0-9]+).*$/\1/p' | tail -1)"
+      [ -n "$CONN_REJECTED" ] && [ "$CONN_REJECTED" -gt 0 ] && warning "Rejected MongoDB connections detected: $CONN_REJECTED"; else DATABASE="CRITICAL"; error "Authenticated mongosh check failed"; echo "$AUTH_OUT" | sed -E 's/(password|pwd)[^,}]*/REDACTED/Ig'; fi
+  fi
+else DATABASE="NOT_EXECUTED"; warning "Authenticated checks not executed"; fi
+
+section "NETWORK MEMBERS"
+NETWORK="NOT_TESTED"
+MEMBER_HOSTS="$(echo "$AUTH_OUT" | sed -nE 's/^([^ ]+):[0-9]+ \| (PRIMARY|SECONDARY|ARBITER|RECOVERING|STARTUP2?|UNKNOWN|DOWN|ROLLBACK) .*/\1/p' | sort -u)"
+if [ -n "$MEMBER_HOSTS" ]; then
+  NETWORK="HEALTHY"
+  for h in $MEMBER_HOSTS; do timeout 3 bash -c "echo >/dev/tcp/$h/$DB_PORT" 2>/dev/null && color "$GREEN" "$h:$DB_PORT OK" || { NETWORK="CRITICAL"; error "$h:$DB_PORT FAIL"; }; done
+else
+  warning "Network members not tested because authenticated member inventory is unavailable"
+fi
+
+section "FINAL SUMMARY"
+[ -s "$ERR" ] && OVERALL="CRITICAL"; [ "$OVERALL" = "HEALTHY" ] && [ -s "$WARN" ] && OVERALL="ATTENTION"
+status_line "Overall status" "$OVERALL"
+status_line "Environment" "$ENVIRONMENT"
+color "$BLUE" "Host: $HOST_SHORT"
+color "$BLUE" "Replica set: ${DB_REPLSET:-UNKNOWN}"
+color "$BLUE" "Port: ${DB_PORT:-UNKNOWN}"
+status_line "Capacity status" "$CAPACITY"
+status_line "Network status" "$NETWORK"
+status_line "Automation Agent status" "$AGENT"
+status_line "Database status" "$DATABASE"
+color "$GRAY" "Report: $OUT"
+color "$GRAY" "Errors: $ERR"
+color "$GRAY" "Warnings: $WARN"
+echo; color "$RED$BOLD" "ERROR LIST:"; if [ -s "$ERR" ]; then while IFS= read -r l; do color "$RED" "$l"; done < "$ERR"; else color "$GREEN" "No error."; fi
+echo; color "$YELLOW$BOLD" "WARNING LIST:"; if [ -s "$WARN" ]; then while IFS= read -r l; do color "$YELLOW" "$l"; done < "$WARN"; else color "$GREEN" "No warning."; fi
+[ "$OVERALL" = "CRITICAL" ] && exit 1
+exit 0

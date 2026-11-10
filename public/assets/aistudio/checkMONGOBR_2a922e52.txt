@@ -1,0 +1,655 @@
+#!/bin/bash
+# Author: Eduardo Vieira, IT Engineer Expert (SSD) Nosql, Databases Engineering
+# Date: 15/07/2026
+# Version: 1.31
+#
+# How to use this shell script
+# Command:
+# mongodb_check.sh [all|connection|lock|none] <instance name> <delivery>
+#
+# Optional parameters:
+# all - Perform all database checks
+# connection - Check database connections
+# lock - Check for database locks
+# none - No extra check
+# instance name - Database instance name (applicable to multi-instance servers)
+# delivery - brazil, global, mexico, spain etc.
+
+
+#############
+# VARIABLES #
+#############
+BIN_CLI=$(whereis -b mongo | cut -d":" -f2 | sed "s/ //g" | head -1)
+CHECK="${1}"
+CLUSTER_MASTER=""
+CLUSTER_NODE_COUNT=0
+CLUSTER_NODE_ERROR=0
+CLUSTER_NODE_HOSTNAME=""
+CLUSTER_NODE_ISMASTER=""
+CLUSTER_NODE_NAME=""
+CLUSTER_NODE_PORT=""
+CLUSTER_NODE_PRIMARY=""
+CLUSTER_NODE_VERSION=""
+CLUSTER_NODE=""
+CLUSTER_NODES=""
+CLUSTER_OK=""
+CLUSTER_SLAVE_IP=""
+CLUSTER_SLAVE_LIST=""
+DATABASE="MongoDB"
+DB_BIND_ALL=""
+DB_BIND=""
+DB_BKP_DIR=""
+DB_BKP_DISK=""
+DB_BKP_FILE=""
+DB_BKP_LOG_DIR=""
+DB_BKP_SCRIPT=""
+DB_CONNECTION_LIST="/tmp/mongodb_connection_list.txt"
+DB_CREDENTIAL=""
+DB_DATA_DISK=""
+DB_DECOMMISSIONING="NO"
+DB_DISK_FILE="/tmp/mongodb_disks_list.txt"
+DB_ERROR=0
+DB_HA_CONF="N/A"
+DB_HA_SERVICE_NAME="N/A"
+DB_INSTANCE="${2}"
+DB_ISMASTER=""
+DB_LIST="/tmp/mongodb_database_list.txt"
+DB_LOCK_LIST="/tmp/mongodb_lock_list.txt"
+DB_LOG_DISK=""
+DB_LOG_FILE=""
+DB_PATH_ORDER=""
+DB_PID_FILE=""
+DB_PORT=""
+DB_PWD=""
+DB_REPLICAOF=""
+DB_REPLSET_NAME=""
+DB_REPLSET=0
+DB_REQUIRE_TLS=""
+DB_SERVICE_NAME=$(systemctl list-units --type service --all | grep -i mongod | grep -i service | grep -v lv | cut -d"." -f1 | sed "s/ //g" | sed "s/●//g" | head -1)
+DB_SERVICE_STATUS=""
+DB_TEMPLATE=""
+DB_TEST=""
+DB_UPTIME=""
+DB_USER=""
+DB_VERSION=""
+DELIVERY=$(echo ${3} | tr '[:upper:]' '[:lower:]')
+ERROR_LIST="/tmp/mongodb_error_list.txt"
+FILE="/tmp/mongodb_check.txt"
+GROUP=""
+IS_CLUSTER_OK="NO"
+IS_CLUSTERED="NO"
+IS_DB_HA_SERVICE_ENABLED="NO"
+IS_DB_HA_SERVICE_INSTALLED="NO"
+IS_DB_HA_SERVICE_RUNNING="NO"
+IS_DB_SERVICE_ENABLED="NO"
+IS_DB_SERVICE_INSTALLED="NO"
+IS_DB_SERVICE_RUNNING="NO"
+IS_MULTI_MASTER_CLUSTER="NO"
+IS_PRIMARY_CLUSTER_NODE="NO"
+IS_PRIMARY_SERVER="NO"
+IS_REPLICA_OK="NO"
+IS_REPLICA_SERVER="NO"
+IS_REPLICATION_RUNNING="NO"
+IS_REPLICATION_SYNCHRONIZED="NO"
+IS_SINGLE_SERVER="NO"
+IS_STANDBY_SERVER="NO"
+LINUX_KERNEL=$(uname -r)
+LINUX_TMP_FILE="/tmp/.bRYEgK5qR42EUnANxFqc"
+LINUX_UPTIME=$(uptime -p)
+LINUX_VERSION=$(cat /etc/redhat-release)
+OPEN_INCIDENT="NO"
+SPLIT="-------------------------------------------------------------------------------------------------"
+SYSTEMCTL_BIN=$(whereis -b systemctl | cut -d":" -f2 | sed "s/ //g" | head -1)
+WARNING_LIST="/tmp/mongodb_warning_list.txt"
+
+# DEPENDENT VARIABLES (DO NOT CHANGE THE ORDER)
+if [ -z ${BIN_CLI} ] 2> /dev/null ; then
+        BIN_CLI=$(whereis -b mongosh | cut -d":" -f2 | sed "s/ //g" | head -1)
+fi
+if [ "$(echo ${DB_INSTANCE} | cut -c1-3)" == "rs_" ] ; then
+        # Remove rs_ characters from the instance name
+        DB_INSTANCE=$(echo ${DB_INSTANCE} | cut -c4-)
+fi
+if [ ${DB_INSTANCE} ] ; then
+        DB_CONF_FILE_PATH="/mongodb/n${DB_INSTANCE}/data/automation-mongod.conf /produtos/mongodb/mongod.conf /produtos/mongodb/etc/mongodb.conf /bbdd_${DB_INSTANCE}/mongod.conf /etc/mongod.conf /etc/mongodb/mongod.conf"
+else
+        DB_CONF_FILE_PATH="/mongodb/n*/data/automation-mongod.conf /produtos/mongodb/mongod.conf /produtos/mongodb/etc/mongodb.conf /bbdd_*/mongod.conf /etc/mongod.conf /etc/mongodb/mongod.conf"
+fi
+DB_CONF=$(ps -ef | grep mongo[d].conf | grep -v grep | grep "${DB_INSTANCE}" | rev | cut -d' ' -f1 | rev | head -1)
+OWNER=$(ps -ef | grep mongo[d].conf | grep -v grep | grep "${DB_INSTANCE}" | awk '{print $1}' | head -1)
+
+
+#############
+# FUNCTIONS #
+#############
+print_db_info() {
+        if [ ${DELIVERY} ] ; then
+                echo -n "Delivery: " ; echo ${DELIVERY} | tr '[:lower:]' '[:upper:]'
+        else
+                DELIVERY="UNKNOWN"
+                echo "Delivery: UNKNOWN"
+        fi
+        echo "Database: ${DATABASE}"
+        if [ ${DB_TEMPLATE} ] ; then
+                echo -n "Database template: " ; echo ${DB_TEMPLATE} | tr '[:lower:]' '[:upper:]'
+        else
+                DB_TEMPLATE="UNKNOWN"
+                echo "Database template: UNKNOWN"
+        fi
+        if [ ${DB_INSTANCE} ] ; then
+                echo "Database instance: ${DB_INSTANCE}"
+        else
+                DB_INSTANCE="UNKNOWN"
+                echo "Database instance: UNKNOWN"
+        fi
+        if [ ${DB_UPTIME} ] ; then
+                echo "Database uptime: ${DB_UPTIME} seconds"
+        else
+                let DB_ERROR++
+                echo "Database uptime: UNKNOWN"
+                echo "$(date +"%Y-%m-%d %T") - Database uptime unknown" >> ${ERROR_LIST}
+        fi
+        if [ ${DB_VERSION} ] ; then
+                echo "Database version: ${DB_VERSION}"
+        else
+                let DB_ERROR++
+                echo "Database version: UNKNOWN"
+                echo "$(date +"%Y-%m-%d %T") - Database version unknown" >> ${ERROR_LIST}
+        fi
+        if [ "${DB_BIND_ALL}" == "true" ] ; then
+                echo "Database bind: all"
+        else
+                if [ ${DB_BIND} ] ; then
+                        echo "Database bind: ${DB_BIND}"
+                else
+                        echo "Database bind: NOT FOUND"
+                fi
+        fi
+        if [ ${DB_PORT} ] ; then
+                echo "Database port: ${DB_PORT}"
+        else
+                let DB_ERROR++
+                echo "Database port: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database port not found" >> ${ERROR_LIST}
+        fi
+        if [ ${DB_ISMASTER} ] ; then
+                echo "Database master: ${DB_ISMASTER}"
+        else
+                let DB_ERROR++
+                echo "Database master: NOT FOUND"
+        fi
+        if [ ${DB_REPLICAOF} ] ; then
+                if [ "${DB_ISMASTER}" == "false" ] ; then
+                        echo "Database replica of: $(host ${DB_REPLICAOF} | cut -d" " -f4)"
+                else
+                        echo "Database replica of: N/A"
+                fi
+        else
+                echo "Database replica of: NOT FOUND"
+        fi
+        if [ ${DB_REPLSET_NAME} ] ; then
+                echo "Database replica set name: ${DB_REPLSET_NAME}"
+        else
+                echo "Database replica set name: NOT FOUND"
+        fi
+        if [ ${DB_DATA_DISK} ] ; then
+                echo "Database data disk: ${DB_DATA_DISK}"
+        else
+                echo "Database data disk: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database data disk not found" >> ${ERROR_LIST}
+        fi
+        if [ ${DB_PID_FILE} ] ; then
+                echo "Database PID file: ${DB_PID_FILE}"
+        else
+                echo "Database PID file: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database PID file not found" >> ${ERROR_LIST}
+        fi
+        if [ ${DB_LOG_DISK} ] ; then
+                echo "Database log disk: ${DB_LOG_DISK}"
+        else
+                echo "Database log disk: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database log disk not found" >> ${ERROR_LIST}
+        fi
+        if [ ${DB_LOG_FILE} ] ; then
+                echo "Database log file: ${DB_LOG_FILE}"
+        else
+                echo "Database log file: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database log file not found" >> ${ERROR_LIST}
+        fi
+        echo ${SPLIT}
+        if [ ${DB_BKP_DISK} ] ; then
+                echo "Database backup disk: ${DB_BKP_DISK}"
+        else
+                echo "Database backup disk: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database backup disk not found" >> ${ERROR_LIST}
+        fi
+        if [ ${DB_BKP_DIR} ] ; then
+                echo "Database backup directory: ${DB_BKP_DIR}"
+        else
+                echo "Database backup directory: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database backup directory not found" >> ${WARNING_LIST}
+        fi
+        if [ ${DB_BKP_LOG_DIR} ] ; then
+                echo "Database backup log directory: ${DB_BKP_LOG_DIR}"
+        else
+                echo "Database backup log directory: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database backup log directory not found" >> ${WARNING_LIST}
+        fi
+        if [ ${DB_BKP_SCRIPT} ] ; then
+                echo "Database backup script file: ${DB_BKP_SCRIPT}"
+        else
+                echo "Database backup script file: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Database backup script file not found" >> ${WARNING_LIST}
+        fi
+        if [ ${DB_BKP_FILE} ] ; then
+                echo "Last database backup file: ${DB_BKP_FILE} ($(stat -c %y ${DB_BKP_FILE} 2> /dev/null | cut -d"." -f1))"
+        else
+                echo "Last database backup file: NOT FOUND"
+                echo "$(date +"%Y-%m-%d %T") - Last database backup file not found" >> ${WARNING_LIST}
+        fi
+        if [ -s ${DB_LIST} ] 2> /dev/null ; then
+                echo ${SPLIT}
+                echo "DATABASE(S):"
+                cat ${DB_LIST} 2> /dev/null
+        fi
+}
+
+
+##############
+# PROCEDURES #
+##############
+echo
+echo "### $(echo ${DATABASE} | tr '[:lower:]' '[:upper:]') CHECK ###"
+echo
+echo "OS: ${LINUX_VERSION}"
+echo "OS kernel: ${LINUX_KERNEL}"
+echo "OS uptime: ${LINUX_UPTIME}"
+echo -n > ${ERROR_LIST}
+echo -n > ${FILE}
+echo -n > ${WARNING_LIST}
+if [ $(yum list installed | grep -i mongodb | grep -i server | wc -l) -gt 0 ] 2> /dev/null ; then
+        IS_DB_SERVICE_INSTALLED="YES"
+fi
+if [ ! ${SYSTEMCTL_BIN} ] ; then
+        let DB_ERROR++
+        echo "$(date +"%Y-%m-%d %T") - Environment error: systemclt not found!" >> ${ERROR_LIST}
+fi
+if [ ${DB_SERVICE_NAME} ] ; then
+        DB_SERVICE_STATUS=$(systemctl is-active ${DB_SERVICE_NAME} 2> /dev/null)
+        if [ "${DB_SERVICE_STATUS}" == "active" ] ; then
+                IS_DB_SERVICE_RUNNING="YES"
+        else
+                if ps -ef | grep mongo[d].conf | grep -v grep | grep "${DB_INSTANCE}" > /dev/null 2>&1 ; then
+                        DB_SERVICE_STATUS="active"
+                        IS_DB_SERVICE_RUNNING="YES"
+                fi
+        fi
+        if [ "$(systemctl is-enabled ${DB_SERVICE_NAME} 2> /dev/null)" == "enabled" ] ; then
+                IS_DB_SERVICE_ENABLED="YES"
+        else
+                echo "$(date +"%Y-%m-%d %T") - Database service is disabled" >> ${WARNING_LIST}
+        fi
+fi
+# FIND CONF FILE WHEN LOCATION FAILS OR DATABASE IS DOWN
+if [ ! ${DB_CONF} ] ; then
+        for DB_CONF_FILE in ${DB_CONF_FILE_PATH} ; do
+                if [ -s ${DB_CONF_FILE} ] 2> /dev/null ; then
+                        DB_CONF=${DB_CONF_FILE}
+                        break
+                fi
+        done
+fi
+# DATABASE DECOMMISSIONING
+for DB_CONF_FILE in ${DB_CONF_FILE_PATH} ; do
+        if [ -s ${DB_CONF_FILE}_CHG* ] 2> /dev/null ; then
+                let DB_ERROR++
+                DB_DECOMMISSIONING="YES"
+                break
+        fi
+done
+if [ ${DB_CONF} ] ; then
+        if [ ${DB_SERVICE_NAME} ] ; then
+                DB_DATA_DISK=$(grep -i "dbPath" ${DB_CONF} | grep -v "#" | sed 's/ //g' | cut -d":" -f2 | cut -d"=" -f2)
+                if [ -d /mongodb/n*/data ] 2> /dev/null ; then
+                        if [ ! ${DB_INSTANCE} ] ; then
+                                DB_INSTANCE=$(echo ${DB_DATA_DISK} | cut -d"/" -f3)
+                        fi
+                        DB_BKP_DISK=$(ls -d /mongodb/n*/backup 2> /dev/null | head -1)
+                        DB_BKP_LOG_DIR="${DB_BKP_DISK}/logs"
+                        DB_BKP_SCRIPT=$(ls ${DB_BKP_DISK}/scripts/mongodb_backup_online.sh 2> /dev/null)
+                        DB_LOG_DISK="/mongodb/${DB_INSTANCE}"
+                        DB_TEMPLATE="global"
+                        if [ -z ${BIN_CLI} ] 2> /dev/null ; then
+                                BIN_CLI=$(find /mongodb/n* -name mongosh 2> /dev/null | sort | head -1)
+                        fi
+                elif [ -d /mongodb/data01 ] 2> /dev/null ; then
+                        DB_BKP_DISK="/mongodb/backup"
+                        DB_BKP_LOG_DIR="/mongodb/backup/logs"
+                        DB_BKP_SCRIPT="/mongodb/backup/scripts/mongodb_backup_online.sh"
+                        DB_LOG_DISK="/mongodb/logs01"
+                        DB_TEMPLATE="brazil"
+                elif ls -d /bbdd_*/datos > /dev/null 2>&1 | head -1 ; then
+                        if [ ! ${DB_INSTANCE} ] ; then
+                                DB_INSTANCE=$(echo ${DB_CONF} | cut -d"/" -f2 | cut -d"_" -f2 )
+                        fi
+                        DB_BKP_DISK="/bbdd_${DB_INSTANCE}/backup"
+                        DB_BKP_DIR="${DB_BKP_DISK}/Backup_BD_MongoDB"
+                        DB_BKP_LOG_DIR="N/A"
+                        DB_BKP_SCRIPT="${DB_BKP_DISK}/Backup_BD_MongoDB/Backup_BD_MongoDB.sh"
+                        DB_LOG_DISK="/bbdd_${DB_INSTANCE}/logs"
+                        DB_TEMPLATE="spain"
+                        if [ -z ${BIN_CLI} ] 2> /dev/null ; then
+                                BIN_CLI=$(find / -name mongosh | grep -v bbdd_ | sort | head -1)
+                        fi
+                fi
+                if [ ${DB_BKP_SCRIPT} ] && [ -s ${DB_BKP_SCRIPT} ] 2> /dev/null ; then
+                        if [ "${DB_TEMPLATE}" == "brazil" ] || [ "${DB_TEMPLATE}" == "global" ]; then
+                                DB_BKP_DIR=$(grep "BACKUP_DIR=" ${DB_BKP_SCRIPT} 2> /dev/null | grep -v "#" | cut -d "=" -f2)
+                                DB_BKP_FILE=$(ls -ltr ${DB_BKP_DIR}/$(grep "BACKUP_NAME=" ${DB_BKP_SCRIPT} | cut -d"=" -f2 | cut -d"$" -f1)* 2> /dev/null | tail -1 | awk '{print $9}')
+                        fi
+                fi
+                if [ ${DB_ERROR} -eq 0 ] ; then
+                        DB_BIND_ALL=$(grep "bindIpAll: true" ${DB_CONF} 2> /dev/null | grep -v "#" | sed 's/ //g' | cut -d":" -f2 | cut -d"=" -f2)
+                        DB_BIND=$(grep -iE "bindIp|bind_ip" ${DB_CONF} 2> /dev/null | grep -v "#" | grep -v bindIpAll | sed 's/ //g' | cut -d":" -f2 | cut -d"=" -f2)
+                        DB_LOG_FILE=$(grep -E "logpath|path:" ${DB_CONF} 2> /dev/null | grep -v "#" | sed 's/ //g' | cut -d":" -f2 | cut -d"=" -f2)
+                        DB_PID_FILE=$(grep -iE "pidFilePath:|pidfilepath=" ${DB_CONF} 2> /dev/null | grep -v "#" | sed 's/ //g' | cut -d":" -f2 | cut -d"=" -f2)
+                        DB_PORT=$(grep -iE "port:|port=" ${DB_CONF} 2> /dev/null | grep -v "#" | sed 's/ //g' | cut -d":" -f2 | cut -d"=" -f2)
+                        DB_REPLSET_NAME=$(grep -i replSetName ${DB_CONF} 2> /dev/null | grep -v "#" | sed 's/ //g' | sed 's/"//g' | cut -d":" -f2 | cut -d"=" -f2)
+                        if  [ ! ${DB_PORT} ] ; then
+                                # SET DEFAULT DATABASE PORT
+                                DB_PORT="27017"
+                        fi
+                        if [ -s /home/mongodb/.bash_profile ] 2> /dev/null ; then
+                                export PATH=${PATH}:$(grep "MONGO_BASE=" /home/mongodb/.bash_profile | cut -d"=" -f2)/bin
+                        fi
+                        if [ "${DB_SERVICE_STATUS}" == "active" ] ; then
+                                if grep -i "requireTLS" ${DB_CONF} | grep -v "#" > /dev/null 2>&1 ; then
+                                        if [ -s /produtos/mongodb/tls/ca.pem ] 2> /dev/null ; then
+                                                if [ -s /produtos/mongodb/tls/client.pem ] 2> /dev/null ; then
+                                                        DB_REQUIRE_TLS="--tls --tlsCAFile /produtos/mongodb/tls/ca.pem --tlsCertificateKeyFile /produtos/mongodb/tls/client.pem"
+                                                else
+                                                        let DB_ERROR++
+                                                        echo "$(date +"%Y-%m-%d %T") - Database requireTLS parameter is enabled and /produtos/mongodb/tls/client.pem file was not found" >> ${ERROR_LIST}
+                                                fi
+                                        else
+                                                let DB_ERROR++
+                                                echo "$(date +"%Y-%m-%d %T") - Database requireTLS parameter is enabled and /produtos/mongodb/tls/ca.pem file was not found" >> ${ERROR_LIST}
+                                        fi
+                                fi
+                                if [ -s ${LINUX_TMP_FILE} ] 2> /dev/null ; then
+                                        VAR1=$(cat ${LINUX_TMP_FILE} 2> /dev/null | cut -c1-20)
+                                        VAR2=$(cat ${LINUX_TMP_FILE} 2> /dev/null | cut -c21-40)
+                                        DB_USER=$(cat ${LINUX_TMP_FILE} 2> /dev/null | cut -c41-84 | openssl aes-256-cbc -pbkdf2 -d -a -pass pass:${VAR1} 2> /dev/null)
+                                        DB_PWD=$(cat ${LINUX_TMP_FILE} 2> /dev/null | cut -c85-148 | openssl aes-256-cbc -pbkdf2 -d -a -pass pass:${VAR2} 2> /dev/null)
+                                        if [ ${DB_USER} ] && [ ${DB_PWD} ] ; then
+                                                if ! ${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} -u ${DB_USER} -p ${DB_PWD} ${DB_REQUIRE_TLS} ${DB} --quiet --eval "db.version()" > /dev/null 2>&1 ; then
+                                                        DB_USER=""
+                                                        DB_PWD=""
+                                                fi
+                                        fi
+                                fi
+                                if [ ! ${DB_USER} ] || [ ! ${DB_PWD} ] ; then
+                                        if [ ${DB_BKP_SCRIPT} ] && [ -s ${DB_BKP_SCRIPT} ] 2> /dev/null ; then
+                                                if [ "${DB_TEMPLATE}" == "brazil" ] || [ "${DB_TEMPLATE}" == "global" ]; then
+                                                        DB_USER=$(grep "DB_USER=" ${DB_BKP_SCRIPT} 2> /dev/null | grep -v "#" | cut -d "'" -f2)
+                                                        DB_PWD=$(grep "DB_PASS=" ${DB_BKP_SCRIPT} 2> /dev/null | grep -v "#" | cut -d "'" -f2)
+                                                elif [ "${DB_TEMPLATE}" == "spain" ] ; then
+                                                        DB_USER=$(grep mongodump ${DB_BKP_SCRIPT} | grep -v "#" | awk '{print $3}' | head -1)
+                                                        DB_PWD=$(grep mongodump ${DB_BKP_SCRIPT} | grep -v "#" | awk '{print $5}' | head -1)
+                                                fi
+                                        fi
+                                fi
+                                if [ ${DB_USER} ] && [ ${DB_PWD} ] ; then
+                                        DB_CREDENTIAL="-u ${DB_USER} -p ${DB_PWD}"
+                                else
+                                        let DB_ERROR++
+                                        echo "$(date +"%Y-%m-%d %T") - Database username or password not found. Unable to connect to the database!" >> ${ERROR_LIST}
+                                fi
+                                if [ ${DB_ERROR} -eq 0 ] ; then
+                                        DB_ISMASTER=$(${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.isMaster()" 2> /dev/null | grep ismaster | cut -d":" -f2 | cut -d"," -f1 | sed 's/ //g')
+                                        DB_REPLICAOF=$(${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.isMaster()" 2> /dev/null | grep primary | sed 's/"//g' | sed "s/'//g" | cut -d":" -f2 | sed 's/ //g')
+                                        DB_UPTIME=$(${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.serverStatus().uptime" 2> /dev/null)
+                                        DB_VERSION=$(${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.version()" 2> /dev/null)
+                                        if ${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "rs.status()" > /dev/null 2>&1 ; then
+                                                DB_REPLSET=1
+                                        fi
+                                        # GET DATABASE LIST
+                                        ${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "show dbs" > ${DB_LIST} 2> /dev/null
+                                        if [ ! -s ${DB_LIST} ] ; then
+                                                echo "No database found." > ${DB_LIST}
+                                        fi
+                                        if [ "${CHECK}" == "all" ] || [ "${CHECK}" == "connection" ] ; then
+                                                # GET CONNECTIONS TO THE DATABASE
+                                                ${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.currentOp(true)" > ${DB_CONNECTION_LIST} 2> /dev/null
+                                                if [ ! -s ${DB_CONNECTION_LIST} ] 2> /dev/null ; then
+                                                        echo "No connection found." > ${DB_CONNECTION_LIST}
+                                                fi
+                                        fi
+                                        if [ "${CHECK}" == "all" ] || [ "${CHECK}" == "lock" ] ; then
+                                                # GET WRITE OPERATIONS WAITING ON A LOCK
+                                                ${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.currentOp( { 'waitingForLock' : true, $or: [ { 'op' : { '$in' : [ 'insert', 'update', 'remove' ] } }, { 'command.findandmodify': { $exists: true } } ] } )" > ${DB_LOCK_LIST} 2> /dev/null
+                                                if [ ! -s ${DB_LOCK_LIST} ] 2> /dev/null ; then
+                                                        echo "No lock found." > ${DB_LOCK_LIST}
+                                                fi
+                                        fi
+                                fi
+                        else
+                                let DB_ERROR++
+                                echo "$(date +"%Y-%m-%d %T") - Database is stopped" >> ${ERROR_LIST}
+                        fi
+                        print_db_info
+                        echo ${SPLIT}
+                        # LIST DATABASE DISKS
+                        echo "DATABASE DISKS:"
+                        DB_ROOT=$(echo $DB_CONF | cut -d"/" -f2)
+                        if [ "${DB_ROOT}" == "produtos" ] ; then
+                                DB_ROOT="mongodb"
+                        fi
+                        for DB_DISK in $(grep -i ${DB_ROOT} /etc/fstab | awk '{print $2}' | sort) ; do
+                                DISKS="${DISKS} ${DB_DISK}"
+                        done
+                        df -h ${DISKS} > ${DB_DISK_FILE} 2> /dev/null
+                        cat ${DB_DISK_FILE}
+                        if [ ${DB_ERROR} -gt 0 ] 2> /dev/null ; then
+                                echo "$(date +"%Y-%m-%d %T") - Discovery and/or check incomplete, check database configuration!" >> ${ERROR_LIST}
+                        else
+                                if [ ${DB_REPLSET_NAME} ] && [ ${DB_REPLSET} -eq 1 ] ; then
+                                        IS_CLUSTERED="YES"
+                                        echo ${SPLIT}
+                                        echo "MongoDB cluster info:"
+                                        ${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "rs.status()" 2> /dev/null
+                                        # CLUSTER CHECK
+                                        CLUSTER_NODES=$(${BIN_CLI} --host ${DB_BIND} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "rs.conf()" 2> /dev/null | grep host | sed 's/ //g' | sed 's/\t//g' | sed 's/"//g' | sed 's/,//g' | sed 's/host://g' | sed "s/'//g")
+                                        for CLUSTER_NODE in ${CLUSTER_NODES} ; do
+                                                CLUSTER_NODE_NAME=$(echo ${CLUSTER_NODE} | cut -d":" -f1)
+                                                CLUSTER_NODE_PORT=$(echo ${CLUSTER_NODE} | cut -d":" -f2)
+                                                if [  "${CLUSTER_NODE_NAME}" == "${HOSTNAME}" ] ; then
+                                                        if ! ${BIN_CLI} --host ${DB_BIND} --port ${CLUSTER_NODE_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.serverStatus().uptime" > /dev/null 2>&1 ; then
+                                                                let CLUSTER_NODE_ERROR++
+                                                                echo "$(date +"%Y-%m-%d %T") - Database error check: ${CLUSTER_NODE_NAME}:${CLUSTER_NODE_PORT}" >> ${ERROR_LIST}
+                                                        fi
+                                                else
+                                                        if ! ${BIN_CLI} --host ${CLUSTER_NODE_NAME} --port ${CLUSTER_NODE_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.serverStatus().uptime" > /dev/null 2>&1 ; then
+                                                                let CLUSTER_NODE_ERROR++
+                                                                echo "$(date +"%Y-%m-%d %T") - Database error check: ${CLUSTER_NODE_NAME}:${CLUSTER_NODE_PORT}" >> ${ERROR_LIST}
+                                                        fi
+                                                fi
+                                        done
+                                        if [ ${CLUSTER_NODE_ERROR} -eq 0 ] 2> /dev/null ; then
+                                                IS_CLUSTER_OK="YES"
+                                        fi
+                                fi
+                        fi
+                fi
+        else
+                print_db_info
+        fi
+else
+        let DB_ERROR++
+        echo "$(date +"%Y-%m-%d %T") - Database conf file is empty or not found!" >> ${ERROR_LIST}
+        print_db_info
+fi
+# LIST SERVERS TO APPLY CONTINUOUS PATCH OR DATABASE PATCH
+if [ "${DB_SERVICE_STATUS}" == "active" ] && [ ${DB_REPLSET_NAME} ] && [ ${DB_REPLSET} -eq 1 ]  2> /dev/null ; then
+        echo ${SPLIT}
+        echo "It is suggested to apply the Continuous Patch or Database Patch in the following order:"
+        for CLUSTER_NODE in ${CLUSTER_NODES} ; do
+                CLUSTER_NODE_NAME=$(echo ${CLUSTER_NODE} | cut -d":" -f1)
+                CLUSTER_NODE_PORT=$(echo ${CLUSTER_NODE} | cut -d":" -f2)
+                if [  "${CLUSTER_NODE_NAME}" == "${HOSTNAME}" ] ; then
+                        CLUSTER_NODE_ISMASTER=$(${BIN_CLI} --host ${DB_BIND} --port ${CLUSTER_NODE_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.isMaster()" 2> /dev/null | grep ismaster | cut -d":" -f2 | cut -d"," -f1 | sed 's/ //g')
+                        CLUSTER_NODE_PRIMARY=$(${BIN_CLI} --host ${DB_BIND} --port ${CLUSTER_NODE_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.isMaster()" 2> /dev/null | grep primary | sed 's/"//g' | sed "s/'//g" | cut -d":" -f2 | sed 's/ //g')
+                else
+                        CLUSTER_NODE_ISMASTER=$(${BIN_CLI} --host ${CLUSTER_NODE_NAME} --port ${CLUSTER_NODE_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.isMaster()" 2> /dev/null | grep ismaster | cut -d":" -f2 | cut -d"," -f1 | sed 's/ //g')
+                        CLUSTER_NODE_PRIMARY=$(${BIN_CLI} --host ${CLUSTER_NODE_NAME} --port ${CLUSTER_NODE_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.isMaster()" 2> /dev/null | grep primary | sed 's/"//g' | sed "s/'//g" | cut -d":" -f2 | sed 's/ //g')
+                fi
+                if [ "${CLUSTER_NODE_ISMASTER}" == "false" ] ; then
+                        if [ ${DB_PATH_ORDER} ] ; then
+                                DB_PATH_ORDER="${DB_PATH_ORDER},$(echo ${CLUSTER_NODE_NAME} | cut -d"." -f1)"
+                        else
+                                DB_PATH_ORDER="$(echo ${CLUSTER_NODE_NAME} | cut -d"." -f1)"
+                        fi
+                        let CLUSTER_NODE_COUNT++
+                        echo "MONGODB,${CLUSTER_NODE_NAME},${CLUSTER_NODE_PORT},SECONDARY,${CLUSTER_NODE_PRIMARY}" >> ${FILE}
+                        if [ "${HOSTNAME}" == "${CLUSTER_NODE_NAME}" ] ; then
+                                echo "${CLUSTER_NODE_COUNT}) ${CLUSTER_NODE_NAME} (SECONDARY) <= YOU ARE CONNECTED HERE"
+                        else
+                                echo "${CLUSTER_NODE_COUNT}) ${CLUSTER_NODE_NAME} (SECONDARY)"
+                        fi
+                elif [ "${CLUSTER_NODE_ISMASTER}" == "true" ] ; then
+                        CLUSTER_MASTER=${CLUSTER_NODE_NAME}
+                        echo "MONGODB,${CLUSTER_NODE_NAME},${CLUSTER_NODE_PORT},PRIMARY" >> ${FILE}
+                else
+                        echo "${CLUSTER_NODE_COUNT}) ${CLUSTER_NODE_NAME} (NOT REACHABLE)"
+                        echo "MONGODB,${CLUSTER_NODE_NAME},${CLUSTER_NODE_PORT},NOT_REACHABLE" >> ${FILE}
+                fi
+        done
+        DB_PATH_ORDER="${DB_PATH_ORDER},$(echo ${CLUSTER_MASTER} | cut -d"." -f1)"
+        let CLUSTER_NODE_COUNT++
+        if [ "${HOSTNAME}" == "${CLUSTER_MASTER}" ] ; then
+                echo "${CLUSTER_NODE_COUNT}) ${CLUSTER_MASTER} (PRIMARY) <= YOU ARE CONNECTED HERE"
+        else
+                echo "${CLUSTER_NODE_COUNT}) ${CLUSTER_MASTER} (PRIMARY)"
+        fi
+        sort -u ${FILE} > ${FILE}.new 2> /dev/null
+        cat ${FILE}.new > ${FILE} 2> /dev/null
+        rm -f ${FILE}.new 2> /dev/null
+fi
+for CLUSTER_NODE in ${CLUSTER_NODES} ; do
+        CLUSTER_NODE_VERSION=$(${BIN_CLI} --host ${CLUSTER_NODE} --port ${DB_PORT} ${DB_CREDENTIAL} ${DB_REQUIRE_TLS} --quiet --eval "db.version()" 2> /dev/null)
+        if [ ! ${CLUSTER_NODE_VERSION} ] ; then
+                CLUSTER_NODE_VERSION="unknown"
+        fi
+        if [ ${CLUSTER_NODE_HOSTNAMES} ] ; then
+                CLUSTER_NODE_HOSTNAMES="${CLUSTER_NODE_HOSTNAMES},$(echo ${CLUSTER_NODE} | cut -d"." -f1)[${CLUSTER_NODE_VERSION}]"
+        else
+                CLUSTER_NODE_HOSTNAMES="$(echo ${CLUSTER_NODE} | cut -d"." -f1)[${CLUSTER_NODE_VERSION}]"
+        fi
+done
+if [ ${DB_ERROR} -gt 0 ] || [ ${CLUSTER_NODE_ERROR} -gt 0 ] 2> /dev/null ; then
+        OPEN_INCIDENT="YES"
+fi
+if [ ! ${DB_SERVICE_NAME} ] ; then
+        DB_SERVICE_NAME="NOT FOUND"
+fi
+if [ "${DB_ISMASTER}" == "true" ] && [ "${IS_CLUSTERED}" == "YES" ] ; then
+        IS_PRIMARY_CLUSTER_NODE="YES"
+fi
+if [ "${IS_CLUSTERED}" == "NO" ] ; then
+        CLUSTER_NODE_HOSTNAMES="N/A"
+        DB_PATH_ORDER="N/A"
+        IS_CLUSTER_OK="N/A"
+        IS_MULTI_MASTER_CLUSTER="N/A"
+        IS_PRIMARY_CLUSTER_NODE="N/A"
+fi
+if [ "${IS_PRIMARY_SERVER}" == "NO" ] ; then
+        IS_STANDBY_OK="N/A"
+fi
+if [ "${IS_STANDBY_SERVER}" == "NO" ] ; then
+        IS_REPLICATION_RUNNING="N/A"
+        IS_REPLICATION_SYNCHRONIZED="N/A"
+fi
+if [ "${IS_CLUSTERED}" == "NO" ] && [ "${IS_PRIMARY_SERVER}" == "NO" ] && [ "${IS_STANDBY_SERVER}" == "NO" ] && [ "${IS_DB_SERVICE_RUNNING}" == "YES" ] ; then
+        IS_SINGLE_SERVER="YES"
+fi
+if [ "${DB_DECOMMISSIONING}" == "YES" ] ; then
+        OPEN_INCIDENT="NO"
+        echo "$(date +"%Y-%m-%d %T") - Database in decommissioning process" >> ${WARNING_LIST}
+fi
+# WRITE DATA INTO FILE TO CHECK DATABASE FAILOVER
+echo "DELIVERY = ${DELIVERY}" >> ${FILE}
+echo "DB_TEMPLATE = ${DB_TEMPLATE}" >> ${FILE}
+echo "DB_INSTANCE = ${DB_INSTANCE}" >> ${FILE}
+echo "DB_SERVICE_NAME = ${DB_SERVICE_NAME}" >> ${FILE}
+echo "DB_CONF = ${DB_CONF}" >> ${FILE}
+echo "DB_HA_SERVICE_NAME = ${DB_HA_SERVICE_NAME}" >> ${FILE}
+echo "DB_HA_CONF = ${DB_HA_CONF}" >> ${FILE}
+echo "DB_USER = $(echo ${DB_USER} | openssl aes-256-cbc -pbkdf2 -a -salt -pass pass:${HOSTNAME} 2> /dev/null)" >> ${FILE}
+echo "DB_PWD = $(echo ${DB_PWD} | openssl aes-256-cbc -pbkdf2 -a -salt -pass pass:${HOSTNAME} 2> /dev/null)" >> ${FILE}
+echo "DB_DECOMMISSIONING = ${DB_DECOMMISSIONING}" >> ${FILE}
+echo "IS_CLUSTERED = ${IS_CLUSTERED}" >> ${FILE}
+echo "OPEN_INCIDENT = ${OPEN_INCIDENT}" >> ${FILE}
+# CHANGE THE OWNER, GROUP, AND PERMISSIONS OF TEMPORARY FILES
+GROUP=$(stat -c %G ${DB_DATA_DISK} 2> /dev/null)
+if [ ! ${OWNER} ] ; then
+        OWNER=$(stat -c %U ${DB_DATA_DISK} 2> /dev/null)
+fi
+chmod -f 664 ${DB_CONNECTION_LIST} ${DB_LIST} ${DB_DISK_FILE} ${DB_LOCK_LIST} ${ERROR_LIST} ${FILE} ${WARNING_LIST} 2> /dev/null
+if [ ${OWNER} ] && [ ${GROUP} ] ; then
+        chown -f ${OWNER}:${GROUP} ${DB_CONNECTION_LIST} ${DB_LIST} ${DB_DISK_FILE} ${DB_LOCK_LIST} ${ERROR_LIST} ${FILE} ${WARNING_LIST} 2> /dev/null
+fi
+echo ${SPLIT}
+echo "Is clustered? ${IS_CLUSTERED}"
+echo "Is cluster OK? ${IS_CLUSTER_OK}"
+echo "Is multi-master cluster? ${IS_MULTI_MASTER_CLUSTER}"
+echo "Is master or primary cluster node? ${IS_PRIMARY_CLUSTER_NODE}"
+echo "Cluster nodes: ${CLUSTER_NODE_HOSTNAMES}"
+echo "Cluster nodes patching order: ${DB_PATH_ORDER}"
+echo ${SPLIT}
+echo "Is master or primary server? ${IS_PRIMARY_SERVER}"
+echo "Is replica, secondary or standby OK? ${IS_STANDBY_OK}"
+echo ${SPLIT}
+echo "Is replica, secondary or standby server? ${IS_STANDBY_SERVER}"
+echo "Is replication running? ${IS_REPLICATION_RUNNING}"
+echo "Is replication synchronized? ${IS_REPLICATION_SYNCHRONIZED}"
+echo ${SPLIT}
+echo "Is single server? ${IS_SINGLE_SERVER}"
+echo ${SPLIT}
+echo "Is database service installed? ${IS_DB_SERVICE_INSTALLED}"
+echo "Is database service enabled? ${IS_DB_SERVICE_ENABLED}"
+echo "Is database service running? ${IS_DB_SERVICE_RUNNING}"
+echo "Database service name: ${DB_SERVICE_NAME}"
+echo "Database conf file: ${DB_CONF} ($(stat -c %y ${DB_CONF} 2> /dev/null | cut -d"." -f1))"
+echo ${SPLIT}
+echo "Is database high availability service installed? ${IS_DB_HA_SERVICE_INSTALLED}"
+echo "Is database high availability service enabled? ${IS_DB_HA_SERVICE_ENABLED}"
+echo "Is database high availability service running? ${IS_DB_HA_SERVICE_RUNNING}"
+echo "Database high availability service name: ${DB_HA_SERVICE_NAME}"
+echo "Database high availability conf file: ${DB_HA_CONF} ($(stat -c %y ${DB_HA_CONF} 2> /dev/null | cut -d"." -f1))"
+echo ${SPLIT}
+echo "Temporary file: ${FILE}"
+echo "Temporary database connection file: ${DB_CONNECTION_LIST}"
+echo "Temporary database disks file: ${DB_DISK_FILE}"
+echo "Temporary database list file: ${DB_LIST}"
+echo "Temporary database lock file: ${DB_LOCK_LIST}"
+echo "Temporary error file: ${ERROR_LIST}"
+echo "Temporary warning file: ${WARNING_LIST}"
+echo ${SPLIT}
+echo "Open incident? ${OPEN_INCIDENT}"
+echo
+echo "ERROR LIST:"
+if [ -s ${ERROR_LIST} ] 2> /dev/null ; then
+        cat ${ERROR_LIST}
+else
+        echo "No error."
+fi
+echo
+echo "WARNING LIST:"
+if [ -s ${WARNING_LIST} ] 2> /dev/null ; then
+        cat ${WARNING_LIST}
+else
+        echo "No warning."
+fi
+echo ${SPLIT}
+echo
+exit 0

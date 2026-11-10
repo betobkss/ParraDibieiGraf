@@ -1,0 +1,32 @@
+PACOTE: Relatorio de contencao Gravity (OECB1RET) - codigo e validador
+
+CONTEUDO
+- gerador_contencao/graficos_contencao.py  : gera os graficos (PNG) das evidencias 2.5-2.7
+- gerador_contencao/mk_contencao_html.py   : monta o corpo HTML e o .eml (texto + HTML, X-Unsent: 1)
+- gerador_contencao/ler_modelo_msg.py      : le o modelo .msg (OLE) para copiar a estrutura
+- troubleshoot/relatorio.py                : validador do contrato do relatorio (stdlib apenas)
+- VALIDAR_RELATORIO.py                     : CLI do validador
+- tests/test_relatorio.py                  : testes do contrato (pytest)
+
+MODELOS SEM DADOS DO CASO
+Os scripts sao modelos: os valores estao zerados e os textos marcados com [PREENCHER: ...].
+Preencha TUDO com os dados do seu dia (AWR global e coleta da mesma janela).
+Nunca reaproveite numeros, SQL ids ou nomes de outro caso ou dia.
+
+PASSOS
+1. Gerar a partir do AWR (global_awr_report_<snap_ini>_<snap_fim>.html) e da coleta
+   (coleta_contencao_<host>_<AAAAMMDD>_<hhmm>.txt) da MESMA janela.
+2. Extrair S00-S14 e o AWR: janela, Database Summary, wait classes, top eventos, top SQL.
+3. Atualizar os dados em graficos_contencao.py e rodar (saida em %TEMP%\graficos_<data>).
+4. Atualizar os textos em mk_contencao_html.py (secoes 1-4) e gerar o .eml.
+5. Prints do AWR (cid) em 2.1-2.8 via Chrome headless (Edge headless pode ser bloqueado).
+6. Validar:  python VALIDAR_RELATORIO.py <arquivo.eml>
+   Para entrega final:  python VALIDAR_RELATORIO.py --final <arquivo.eml>
+   Testes:  python -m pytest tests/test_relatorio.py -q
+7. Reler o .eml (acentos, celulas, numero de imagens) antes de enviar.
+
+REGRAS
+- Campo sem evidencia = PENDENTE. Nao preencher com memoria ou dados de outro dia.
+- Nao usar <pre> no corpo do e-mail.
+- Nenhuma credencial, host real ou caminho de rede esta neste pacote; ajuste caminhos locais.
+- O modelo oficial (.msg) fica no repositorio de healthcheck do time; nao esta incluido.

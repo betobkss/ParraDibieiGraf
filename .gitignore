@@ -7,3 +7,5 @@ coverage/
 .env*
 !.env.example
 node-compile-cache/
+__pycache__/
+*.pyc
